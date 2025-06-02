@@ -7,11 +7,11 @@ import random
 import asyncio
 from datetime import datetime, timezone
 
-SCORE_FILE = "data/scores.json"
-LOG_FILE = "data/match_log.json"
-LAST_FILE = "data/last_match.json"
-SHIELD_FILE = "data/donate_shields.json"
-DONATOR_FILE = "data/donator.json"
+SCORE_FILE = "scores.json"
+LOG_FILE = "match_log.json"
+LAST_FILE = "last_match.json"
+SHIELD_FILE = "donate_shields.json"
+DONATOR_FILE = "donator.json"
 
 # 🧠 Тоглоомын Session-н төлөв
 GAME_SESSION = {
