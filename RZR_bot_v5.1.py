@@ -1206,6 +1206,11 @@ async def should_deduct(uid_str: str, shields: dict) -> bool:
 
 @bot.tree.command(name="all_commands", description="Ботод бүртгэлтэй бүх / командуудыг харуулна")
 async def all_commands(interaction: discord.Interaction):
+    # ✅ Админ эрх шалгана
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        return
+
     await interaction.response.defer(thinking=True)  # 🧠 Discord-д 'Bot is thinking...' илгээнэ
 
     commands = await bot.tree.fetch_commands(guild=interaction.guild)
