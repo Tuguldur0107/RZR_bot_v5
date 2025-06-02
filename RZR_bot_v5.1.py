@@ -324,6 +324,11 @@ async def my_score(interaction: discord.Interaction):
 
 @bot.tree.command(name="scoreboard", description="Бүх тоглогчдын онооны жагсаалт")
 async def scoreboard(interaction: discord.Interaction):
+    # ✅ Админ эрх шалгах
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        return
+
     await interaction.response.defer(thinking=True)
 
     scores = load_scores()
