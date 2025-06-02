@@ -1260,12 +1260,12 @@ async def on_ready():
     print("📁 Working directory:", os.getcwd())
 
     for guild in bot.guilds:
-        bot.tree.copy_global_to(guild=guild)      # 👈 await хаяна!
-        await bot.tree.sync(guild=guild)          # ✅ зөв
+        bot.tree.copy_global_to(guild=guild)
+        await bot.tree.sync(guild=guild)
         print(f"✅ Synced commands for guild: {guild.name} ({guild.id})")
 
     asyncio.create_task(session_timeout_checker())
-    
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -1285,16 +1285,9 @@ async def on_message(message):
     with open("last_message.json", "w") as f:
         json.dump(last_seen, f, indent=4)
 
-    # 📢 Энэ нь command-уудыг ажиллах боломжтой болгодог заавал байх ёстой
     await bot.process_commands(message)
 
-client = discord.Client()
-
-@client.event
-async def on_ready():
-    print(f"Bot logged in as {client.user}")
-
 if __name__ == "__main__":
-    print("Starting bot...")  # Энэ мөрийг нэмээрэй
+    print("Starting bot...")
     TOKEN = os.environ["TOKEN"]
-    client.run(TOKEN)
+    bot.run(TOKEN)
