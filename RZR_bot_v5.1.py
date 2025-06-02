@@ -279,9 +279,20 @@ async def match_history(interaction: discord.Interaction):
     for i, entry in enumerate(reversed(recent_matches), 1):
         winners = ", ".join(f"<@{uid}>" for uid in entry.get("winners", []))
         losers = ", ".join(f"<@{uid}>" for uid in entry.get("losers", []))
-        timestamp = entry.get("timestamp", "⏱️ цаггүй")
         mode = entry.get("mode", "unspecified")
-        message += f"\n**#{i} [{mode}]** — 🏆 {winners} vs 💔 {losers} — `{timestamp}`"
+        raw_ts = entry.get("timestamp")
+
+        if raw_ts:
+            try:
+                dt = datetime.fromisoformat(raw_ts)
+                dt_mn = dt.astimezone(timezone(timedelta(hours=8)))  # MGL +08:00
+                ts_str = dt_mn.strftime("%Y-%m-%d %H:%M")
+            except:
+                ts_str = raw_ts
+        else:
+            ts_str = "⏱️ цаггүй"
+
+        message += f"\n**#{i} | {mode} | {ts_str}**\n🏆 {winners}\n💔 {losers}\n"
 
     await interaction.response.send_message(message)
 
