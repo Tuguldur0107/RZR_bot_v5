@@ -6,7 +6,7 @@ import os
 import random
 import asyncio
 from datetime import datetime, timezone, timedelta
-from typing import List
+
 
 SCORE_FILE = "scores.json"
 LOG_FILE = "match_log.json"
