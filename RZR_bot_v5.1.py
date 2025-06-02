@@ -619,6 +619,11 @@ async def make_team_go(interaction: discord.Interaction):
     losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
 )
 async def set_winner_team(interaction: discord.Interaction, winning_team: int, losing_team: int):
+    # Зөвхөн эхлүүлэгч ажиллуулах эрхтэй эсэхийг шалгах
+    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
+        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
+        return
+
     if not GAME_SESSION["active"]:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүлнэ үү.")
         return
@@ -714,6 +719,11 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 @bot.tree.command(name="change_player", description="Багт тоглогч солих")
 @app_commands.describe(from_member="Солигдох тоглогч", to_member="Шинэ тоглогч")
 async def change_player(interaction: discord.Interaction, from_member: discord.Member, to_member: discord.Member):
+    # Зөвхөн эхлүүлэгч ажиллуулах эрхтэй эсэх шалгах
+    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
+        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
+        return
+
     user_ids = TEAM_SETUP["player_ids"]
     players_per_team = TEAM_SETUP["players_per_team"]
     team_count = TEAM_SETUP["team_count"]
@@ -735,6 +745,7 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
         f"🔁 {from_member.mention} → {to_member.mention} солигдлоо!\n"
         f"📌 {from_member.mention} нь Team {old_team}-д байсан."
     )
+
 
 
 
@@ -1004,6 +1015,11 @@ async def match2(interaction: discord.Interaction,
     losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
 )
 async def set_winner_team_fountain(interaction: discord.Interaction, winning_team: int, losing_team: int):
+    # Зөвхөн эхлүүлэгч ажиллуулах эрхтэй эсэхийг шалгах
+    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
+        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
+        return
+
     if not GAME_SESSION["active"]:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүлнэ үү.")
         return
@@ -1080,11 +1096,17 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         f"💔 Хожигдсон баг (Team {losing_team}): {lose_mentions} → **–2**"
     )
 
+
 @bot.tree.command(name="add_team", description="Шинэ багийг тоглож буй session-д нэмнэ")
 @app_commands.describe(
     mentions="Шинэ багийн гишүүдийн mention-ууд"
 )
 async def add_team(interaction: discord.Interaction, mentions: str):
+    # Зөвхөн session эхлүүлэгч ашиглах эрхтэй эсэхийг шалгах
+    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
+        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ашиглах эрхтэй.", ephemeral=True)
+        return
+
     if not GAME_SESSION["active"]:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүлнэ үү.")
         return
