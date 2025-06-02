@@ -1119,6 +1119,47 @@ async def active_teams(interaction: discord.Interaction):
         msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
 
     await interaction.response.send_message(msg)
+@bot.tree.command(name="set_team", description="Админ: гараар багийн бүртгэл үүсгэнэ")
+@app_commands.describe(
+    team_count="Багийн тоо",
+    players_per_team="Нэг багт хэдэн хүн байх",
+    mentions="Тоглогчдыг mention-ээр оруулна (дарааллаар)"
+)
+async def set_team(interaction: discord.Interaction, team_count: int, players_per_team: int, mentions: str):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
+        return
+
+    user_ids = [word[2:-1].replace("!", "") for word in mentions.split() if word.startswith("<@") and word.endswith(">")]
+    expected = team_count * players_per_team
+
+    if len(user_ids) != expected:
+        await interaction.response.send_message(
+            f"⚠️ Нийт гишүүдийн тоо {expected}-той тэнцүү байх ёстой. ({team_count} баг × {players_per_team} хүн)",
+            ephemeral=True
+        )
+        return
+
+    TEAM_SETUP["initiator_id"] = interaction.user.id
+    TEAM_SETUP["team_count"] = team_count
+    TEAM_SETUP["players_per_team"] = players_per_team
+    TEAM_SETUP["player_ids"] = [int(uid) for uid in user_ids]
+
+    GAME_SESSION["active"] = True
+    now = datetime.utcnow()
+    GAME_SESSION["start_time"] = now
+    GAME_SESSION["last_win_time"] = now
+
+    msg = "✅ Гараар баг бүртгэл амжилттай!\n"
+    for i in range(team_count):
+        start = i * players_per_team
+        end = start + players_per_team
+        team = user_ids[start:end]
+        mentions = [f"<@{uid}>" for uid in team]
+        msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
+
+    await interaction.response.send_message(msg)
+
 
 @bot.tree.command(name="add_team", description="Шинэ багийг тоглож буй session-д нэмнэ")
 @app_commands.describe(
