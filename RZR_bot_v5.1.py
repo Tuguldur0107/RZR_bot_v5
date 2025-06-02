@@ -7,6 +7,10 @@ import random
 import asyncio
 from datetime import datetime, timezone, timedelta
 
+start = datetime.now(timezone.utc)
+end = start + timedelta(hours=5)
+
+elapsed = end - start  # ⏱ timedelta object
 
 SCORE_FILE = "scores.json"
 LOG_FILE = "match_log.json"
@@ -599,7 +603,7 @@ async def make_team_go(interaction: discord.Interaction):
     TEAM_SETUP["player_ids"] = [p["member"].id for t in teams for p in t["players"]]
     TEAM_SETUP["teams"] = team_ids
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     GAME_SESSION["active"] = True
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
@@ -713,7 +717,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     await interaction.followup.send(f"🏆 Team {winning_team}-ийн гишүүд оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team}-ийн гишүүд оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
 
-    GAME_SESSION["last_win_time"] = datetime.utcnow()
+    GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)
 
 
 # 🔄 Тоглогч солих
@@ -1155,8 +1159,8 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
     # Session эхлүүлнэ
     if not GAME_SESSION["active"]:
         GAME_SESSION["active"] = True
-        GAME_SESSION["start_time"] = datetime.utcnow()
-        GAME_SESSION["last_win_time"] = datetime.utcnow()
+        GAME_SESSION["start_time"] = datetime.now(timezone.utc)
+        GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)
         TEAM_SETUP["initiator_id"] = interaction.user.id
         TEAM_SETUP["player_ids"] = []
         TEAM_SETUP["team_count"] = 0
@@ -1399,7 +1403,7 @@ async def session_timeout_checker():
     while not bot.is_closed():
         await asyncio.sleep(60)  # 1 минут тутамд шалгана
         if GAME_SESSION["active"]:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             elapsed = now - GAME_SESSION["last_win_time"]
             if elapsed.total_seconds() > 86400:  # 24 цаг = 86400 секунд
                 GAME_SESSION["active"] = False
