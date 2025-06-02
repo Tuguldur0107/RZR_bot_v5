@@ -1103,20 +1103,30 @@ async def active_teams(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
         return
 
-    team_count = TEAM_SETUP["team_count"]
-    players_per_team = TEAM_SETUP["players_per_team"]
     user_ids = TEAM_SETUP["player_ids"]
+    team_size = TEAM_SETUP["players_per_team"]  # Хэрэглэгдэхгүй
+    team_count = TEAM_SETUP["team_count"]
 
     if not user_ids:
-        await interaction.response.send_message("📭 Одоогоор бүртгэгдсэн багийн гишүүд алга.")
+        await interaction.response.send_message("📭 Одоогоор багт бүртгэгдсэн тоглогч алга.")
         return
 
-    msg = f"📋 **Идэвхтэй багуудын жагсаалт:**\n"
+    guild = interaction.guild
+    msg = "📋 **Идэвхтэй багуудын жагсаалт:**\n"
+
     for i in range(team_count):
-        start = i * players_per_team
-        end = start + players_per_team
+        start = i * team_size
+        end = start + team_size
         team_members = user_ids[start:end]
-        mentions = [f"<@{uid}>" for uid in team_members]
+        mentions = []
+
+        for uid in team_members:
+            member = guild.get_member(uid)
+            if member:
+                mentions.append(member.mention)
+            else:
+                mentions.append(f"<@{uid}>")
+
         msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
 
     await interaction.response.send_message(msg)
