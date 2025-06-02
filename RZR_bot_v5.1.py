@@ -5,7 +5,7 @@ import json
 import os
 import random
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 SCORE_FILE = "scores.json"
 LOG_FILE = "match_log.json"
@@ -273,7 +273,7 @@ async def match_history(interaction: discord.Interaction):
         await interaction.response.send_message("📭 Match log хоосон байна.")
         return
 
-    recent_matches = log[-5:]  # Сүүлийн 5 match
+    recent_matches = log[-5:]
     message = "📜 **Сүүлийн Match-ууд:**\n"
 
     for i, entry in enumerate(reversed(recent_matches), 1):
@@ -285,7 +285,7 @@ async def match_history(interaction: discord.Interaction):
         if raw_ts:
             try:
                 dt = datetime.fromisoformat(raw_ts)
-                dt_mn = dt.astimezone(timezone(timedelta(hours=8)))  # MGL +08:00
+                dt_mn = dt.astimezone(timezone(timedelta(hours=8)))  # MGL timezone
                 ts_str = dt_mn.strftime("%Y-%m-%d %H:%M")
             except:
                 ts_str = raw_ts
@@ -510,13 +510,10 @@ async def addme(interaction: discord.Interaction):
 
 
 
-@bot.tree.command(name="make_team_go",
-                  description="Бүртгүүлсэн тоглогчдыг багт хуваана")
+@bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг багт хуваана")
 async def make_team_go(interaction: discord.Interaction):
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
-        await interaction.response.send_message(
-            "❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно."
-        )
+        await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
         return
 
     await interaction.response.defer(thinking=True)
@@ -541,27 +538,25 @@ async def make_team_go(interaction: discord.Interaction):
         "2-1": 40
     }
 
-    # 🎯 Real score = tier score + оноо
     player_info = []
     for uid in user_ids:
         member = guild.get_member(uid)
-        if member:
-            data = scores.get(str(uid), {"tier": "4-1", "score": 0})
-            tier = data.get("tier", "4-1")
-            score = data.get("score", 0)
-            base = tier_score.get(tier, 5)
-            real_score = base + score
-            player_info.append({
-                "member": member,
-                "tier": tier,
-                "score": score,
-                "real_score": real_score
-            })
+        if not member:
+            continue
+        data = scores.get(str(uid), {"tier": "4-1", "score": 0})
+        tier = data.get("tier", "4-1")
+        score = data.get("score", 0)
+        base = tier_score.get(tier, 5)
+        real_score = base + score
+        player_info.append({
+            "member": member,
+            "tier": tier,
+            "score": score,
+            "real_score": real_score
+        })
 
-    # 🏅 Багууд үүсгэх
     teams = [{"players": [], "score": 0} for _ in range(team_count)]
 
-    # 🧮 Real score-р эрэмбэлэх
     player_info.sort(key=lambda x: -x["real_score"])
 
     for player in player_info:
@@ -572,15 +567,18 @@ async def make_team_go(interaction: discord.Interaction):
         target_team["players"].append(player)
         target_team["score"] += player["real_score"]
 
-    # 🧾 Unassigned тоглогчид
     assigned_players = [p for t in teams for p in t["players"]]
     unassigned_players = [p for p in player_info if p not in assigned_players]
 
-    # 📣 Message үүсгэх
-    msg = f"**🤖 {len(user_ids)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
+    emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]
 
+    msg = f"**🤖 {len(player_info)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
+
+    team_ids = []
     for i, team in enumerate(teams, 1):
-        msg += f"**🏅 Team {i} (нийт оноо: {team['score']}):**\n"
+        emj = emojis[i - 1] if i - 1 < len(emojis) else "🏅"
+        msg += f"**{emj} Team {i}** (нийт оноо: `{team['score']}`):\n"
+        team_ids.append([p["member"].id for p in team["players"]])
         for p in team["players"]:
             msg += f"• {p['member'].mention} ({p['tier']} / {p['score']:+})\n"
         msg += "\n"
@@ -592,14 +590,21 @@ async def make_team_go(interaction: discord.Interaction):
 
     await interaction.followup.send(msg)
 
-    # ✅ Player ID дарааллаар хадгалах
     TEAM_SETUP["player_ids"] = [p["member"].id for t in teams for p in t["players"]]
+    TEAM_SETUP["teams"] = team_ids
 
-    # ⏱️ Session эхлүүлэх
     now = datetime.utcnow()
     GAME_SESSION["active"] = True
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
+
+    # 🗃️ Багийн бүрэлдэхүүнийг log файлд хадгалах
+    log_data = {
+        "timestamp": now.isoformat(),
+        "teams": team_ids
+    }
+    with open("team_log.json", "w") as f:
+        json.dump(log_data, f, indent=4)
 
 
 # 🏆 Winner Team сонгох
