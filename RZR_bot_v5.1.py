@@ -296,7 +296,12 @@ async def my_score(interaction: discord.Interaction):
 
         msg = f"📿 {interaction.user.mention} таны оноо: {score}\n🎖 Түвшин: **{tier}**"
         if updated:
-            msg += f"\n🕓 Сүүлд шинэчлэгдсэн: `{updated}`"
+            try:
+                dt = datetime.fromisoformat(updated)
+                formatted = dt.strftime("%Y-%m-%d %H:%M")
+                msg += f"\n🕓 Сүүлд шинэчлэгдсэн: `{formatted}`"
+            except:
+                msg += f"\n🕓 Сүүлд шинэчлэгдсэн: `{updated}`"
 
         await interaction.response.send_message(msg)
     else:
