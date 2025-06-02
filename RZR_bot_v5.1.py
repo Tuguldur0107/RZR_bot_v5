@@ -1288,7 +1288,13 @@ async def on_message(message):
     # 📢 Энэ нь command-уудыг ажиллах боломжтой болгодог заавал байх ёстой
     await bot.process_commands(message)
 
+client = discord.Client()
+
+@client.event
+async def on_ready():
+    print(f"Bot logged in as {client.user}")
+
 if __name__ == "__main__":
+    print("Starting bot...")  # Энэ мөрийг нэмээрэй
     TOKEN = os.environ["TOKEN"]
     client.run(TOKEN)
-
