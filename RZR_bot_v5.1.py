@@ -1096,6 +1096,29 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         f"💔 Хожигдсон баг (Team {losing_team}): {lose_mentions} → **–2**"
     )
 
+@bot.tree.command(name="active_teams", description="Идэвхтэй session-д бүртгэлтэй багуудыг харуулна")
+async def active_teams(interaction: discord.Interaction):
+    if not GAME_SESSION["active"]:
+        await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
+        return
+
+    team_count = TEAM_SETUP["team_count"]
+    players_per_team = TEAM_SETUP["players_per_team"]
+    user_ids = TEAM_SETUP["player_ids"]
+
+    if not user_ids:
+        await interaction.response.send_message("📭 Одоогоор бүртгэгдсэн багийн гишүүд алга.")
+        return
+
+    msg = f"📋 **Идэвхтэй багуудын жагсаалт:**\n"
+    for i in range(team_count):
+        start = i * players_per_team
+        end = start + players_per_team
+        team_members = user_ids[start:end]
+        mentions = [f"<@{uid}>" for uid in team_members]
+        msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
+
+    await interaction.response.send_message(msg)
 
 @bot.tree.command(name="add_team", description="Шинэ багийг тоглож буй session-д нэмнэ")
 @app_commands.describe(
