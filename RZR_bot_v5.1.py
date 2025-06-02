@@ -5,7 +5,6 @@ import json
 import os
 import random
 import asyncio
-from keep_alive import keep_alive
 from datetime import datetime, timezone
 
 SCORE_FILE = "scores.json"
@@ -20,8 +19,6 @@ GAME_SESSION = {
     "start_time": None,
     "last_win_time": None
 }
-
-keep_alive()
 
 def load_donators():
     if not os.path.exists(DONATOR_FILE):
