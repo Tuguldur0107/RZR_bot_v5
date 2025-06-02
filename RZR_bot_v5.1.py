@@ -128,7 +128,7 @@ async def update_all_nicknames(guild):
     save_scores(scores)
 
 
-@bot.tree.command(name="ping2", description="Ping test")
+@bot.tree.command(name="ping", description="Ping test")
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message("🏓 Pong!")
 
