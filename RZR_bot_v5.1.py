@@ -1119,46 +1119,49 @@ async def active_teams(interaction: discord.Interaction):
         msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
 
     await interaction.response.send_message(msg)
-@bot.tree.command(name="set_team", description="Админ: гараар багийн бүртгэл үүсгэнэ")
+@bot.tree.command(name="set_team", description="Админ: тоглогчдыг багт гараар бүртгэнэ")
 @app_commands.describe(
-    team_count="Багийн тоо",
-    players_per_team="Нэг багт хэдэн хүн байх",
-    mentions="Тоглогчдыг mention-ээр оруулна (дарааллаар)"
+    team_number="Багийн дугаар (жишээ: 1, 2, 3...)",
+    mentions="Тухайн багийн тоглогчид mention (@user) хийнэ"
 )
-async def set_team(interaction: discord.Interaction, team_count: int, players_per_team: int, mentions: str):
+async def set_team(interaction: discord.Interaction, team_number: int, mentions: str):
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
+        await interaction.response.send_message("⛔️ Энэ командыг зөвхөн админ хэрэглэнэ.", ephemeral=True)
         return
 
-    user_ids = [word[2:-1].replace("!", "") for word in mentions.split() if word.startswith("<@") and word.endswith(">")]
-    expected = team_count * players_per_team
+    # 🧑‍🤝‍🧑 Mention-уудыг цэвэрлэж авна
+    user_ids = [int(word[2:-1].replace("!", "")) for word in mentions.split() if word.startswith("<@") and word.endswith(">")]
 
-    if len(user_ids) != expected:
-        await interaction.response.send_message(
-            f"⚠️ Нийт гишүүдийн тоо {expected}-той тэнцүү байх ёстой. ({team_count} баг × {players_per_team} хүн)",
-            ephemeral=True
-        )
+    if not user_ids:
+        await interaction.response.send_message("⚠️ Хамгийн багадаа нэг тоглогч mention хийнэ үү.", ephemeral=True)
         return
 
-    TEAM_SETUP["initiator_id"] = interaction.user.id
-    TEAM_SETUP["team_count"] = team_count
-    TEAM_SETUP["players_per_team"] = players_per_team
-    TEAM_SETUP["player_ids"] = [int(uid) for uid in user_ids]
+    # Session эхлүүлнэ
+    if not GAME_SESSION["active"]:
+        GAME_SESSION["active"] = True
+        GAME_SESSION["start_time"] = datetime.utcnow()
+        GAME_SESSION["last_win_time"] = datetime.utcnow()
+        TEAM_SETUP["initiator_id"] = interaction.user.id
+        TEAM_SETUP["player_ids"] = []
+        TEAM_SETUP["team_count"] = 0  # дараа нь max-аар автоматаар өсгөнө
+        TEAM_SETUP["players_per_team"] = 0  # хэрэглэгдэхгүй
 
-    GAME_SESSION["active"] = True
-    now = datetime.utcnow()
-    GAME_SESSION["start_time"] = now
-    GAME_SESSION["last_win_time"] = now
+    # Давхардсан тоглогч шалгах
+    already_in = [uid for uid in user_ids if uid in TEAM_SETUP["player_ids"]]
+    if already_in:
+        msg = ", ".join([f"<@{uid}>" for uid in already_in])
+        await interaction.response.send_message(f"⚠️ Дараах гишүүд аль хэдийн багт бүртгэгдсэн байна: {msg}", ephemeral=True)
+        return
 
-    msg = "✅ Гараар баг бүртгэл амжилттай!\n"
-    for i in range(team_count):
-        start = i * players_per_team
-        end = start + players_per_team
-        team = user_ids[start:end]
-        mentions = [f"<@{uid}>" for uid in team]
-        msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
+    # 🆙 team_count автоматаар шинэчлэх
+    TEAM_SETUP["team_count"] = max(TEAM_SETUP["team_count"], team_number)
 
-    await interaction.response.send_message(msg)
+    # 👥 Тоглогчдыг бүртгэх
+    TEAM_SETUP["player_ids"].extend(user_ids)
+
+    # 📣 Message харуулах
+    mentions_str = ", ".join([f"<@{uid}>" for uid in user_ids])
+    await interaction.response.send_message(f"✅ **Team {team_number}** бүртгэгдлээ:\n• {mentions_str}")
 
 
 @bot.tree.command(name="add_team", description="Шинэ багийг тоглож буй session-д нэмнэ")
