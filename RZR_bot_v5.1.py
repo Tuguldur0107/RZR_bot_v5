@@ -1097,29 +1097,30 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         f"💔 Хожигдсон баг (Team {losing_team}): {lose_mentions} → **–2**"
     )
 
-@bot.tree.command(name="active_teams", description="Идэвхтэй session-д бүртгэлтэй багуудыг харуулна")
+@bot.tree.command(name="active_teams", description="Идэвхтэй багуудын жагсаалт")
 async def active_teams(interaction: discord.Interaction):
     if not GAME_SESSION["active"]:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
         return
 
     user_ids = TEAM_SETUP["player_ids"]
-    team_size = TEAM_SETUP["players_per_team"]  # Хэрэглэгдэхгүй
     team_count = TEAM_SETUP["team_count"]
 
-    if not user_ids:
-        await interaction.response.send_message("📭 Одоогоор багт бүртгэгдсэн тоглогч алга.")
+    if not user_ids or team_count == 0:
+        await interaction.response.send_message("📭 Бүртгэлтэй баг алга байна.")
         return
 
     guild = interaction.guild
+    team_size = len(user_ids) // team_count  # 🧠 автоматаар тооцно
+
     msg = "📋 **Идэвхтэй багуудын жагсаалт:**\n"
 
     for i in range(team_count):
         start = i * team_size
         end = start + team_size
         team_members = user_ids[start:end]
-        mentions = []
 
+        mentions = []
         for uid in team_members:
             member = guild.get_member(uid)
             if member:
@@ -1127,7 +1128,7 @@ async def active_teams(interaction: discord.Interaction):
             else:
                 mentions.append(f"<@{uid}>")
 
-        msg += f"\n🏅 **Team {i+1}:** " + ", ".join(mentions)
+        msg += f"\n🥇 **Team {i+1}:**\n• " + ", ".join(mentions) + "\n"
 
     await interaction.response.send_message(msg)
 
