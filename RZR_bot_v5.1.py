@@ -1208,6 +1208,9 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         scores[uid]["updated_at"] = datetime.now(timezone.utc).isoformat()
         updated.append(member)
 
+    print(f"[add_score] {member.name} оноо: {scores[uid]['score']}, tier: {scores[uid]['tier']}")
+
+
     save_scores(scores)
 
     if updated:
@@ -1218,7 +1221,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         msg += f"\n⚠️ Дараах ID-г хөрвүүлж чадсангүй: {', '.join(failed)}"
 
     await interaction.followup.send(msg)
-
+   
 # ⏱️ Session хугацаа дууссан эсэх шалгагч task
 async def session_timeout_checker():
     await bot.wait_until_ready()
