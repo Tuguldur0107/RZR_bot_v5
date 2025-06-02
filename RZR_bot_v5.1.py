@@ -8,11 +8,11 @@ import asyncio
 from keep_alive import keep_alive
 from datetime import datetime, timezone
 
-SCORE_FILE = "D:/BotRZR/scores.json"
-LOG_FILE = "D:/BotRZR/match_log.json"
-LAST_FILE = "D:/BotRZR/last_match.json"
-SHIELD_FILE = "D:/BotRZR/donate_shields.json"
-DONATOR_FILE = "D:/BotRZR/donator.json"
+SCORE_FILE = "scores.json"
+LOG_FILE = "match_log.json"
+LAST_FILE = "last_match.json"
+SHIELD_FILE = "donate_shields.json"
+DONATOR_FILE = "donator.json"
 
 # 🧠 Тоглоомын Session-н төлөв
 GAME_SESSION = {
