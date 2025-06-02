@@ -158,78 +158,7 @@ async def update_nicknames_for_users(guild, user_ids: list):
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
 
-@bot.tree.command(name="match3", description="3v3 match result")
-@app_commands.describe(winner1="Ялагч 1",
-                       winner2="Ялагч 2",
-                       winner3="Ялагч 3",
-                       loser1="Ялагдагч 1",
-                       loser2="Ялагдагч 2",
-                       loser3="Ялагдагч 3")
-async def match3(interaction: discord.Interaction, winner1: discord.Member,
-                 winner2: discord.Member, winner3: discord.Member,
-                 loser1: discord.Member, loser2: discord.Member,
-                 loser3: discord.Member):
 
-    await interaction.response.defer(thinking=True)
-
-    all_winners = [winner1, winner2, winner3]
-    all_losers = [loser1, loser2, loser3]
-
-    if len(set(all_winners + all_losers)) < 6:
-        await interaction.followup.send("❌ Тоглогчид давхцаж байна!")
-        return
-
-    scores = load_scores()
-
-    for player in all_winners:
-        uid = str(player.id)
-        if not isinstance(scores.get(uid), dict):
-            scores[uid] = {"score": 0, "tier": "4-1"}
-        scores[uid]["score"] += 1
-        if scores[uid]["score"] >= 5:
-            scores[uid]["tier"] = promote_tier(scores[uid]["tier"])
-            scores[uid]["score"] = 0
-        scores[uid]["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    for player in all_losers:
-        uid = str(player.id)
-        if not isinstance(scores.get(uid), dict):
-            scores[uid] = {"score": 0, "tier": "4-1"}
-        scores[uid]["score"] -= 1
-        if scores[uid]["score"] <= -5:
-            scores[uid]["tier"] = demote_tier(scores[uid]["tier"])
-            scores[uid]["score"] = 0
-        scores[uid]["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    save_scores(scores)
-    
-    # 📜 Match log.json-д бүртгэх
-    log_entry = {
-        "mode": "3v3",  # ← энэ мөрийг нэм
-        "winners": [str(m.id) for m in all_winners],
-        "losers": [str(m.id) for m in all_losers],
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-
-    try:
-        with open(LOG_FILE, "r") as f:
-            log = json.load(f)
-    except FileNotFoundError:
-        log = []
-
-    log.append(log_entry)
-    with open(LOG_FILE, "w") as f:
-        json.dump(log, f, indent=2)
-
-    changed_ids = [m.id for m in all_winners + all_losers]
-    await update_nicknames_for_users(interaction.guild, changed_ids)
-
-    winners_mentions = ", ".join([m.mention for m in all_winners])
-    losers_mentions = ", ".join([m.mention for m in all_losers])
-
-    await interaction.followup.send(
-        f"🏆 Ялагчид: {winners_mentions} (+1)\n💔 Ялагдагчид: {losers_mentions} (-1)"
-    )
 # 🕹️ /undo_last_match — сүүлд хийсэн match-ийн оноог буцаана
 @bot.tree.command(name="undo_last_match", description="Сүүлд хийсэн match-ийн оноог буцаана")
 async def undo_last_match(interaction: discord.Interaction):
@@ -279,27 +208,31 @@ async def match_history(interaction: discord.Interaction):
         return
 
     recent_matches = log[-5:]
-    message = "📜 **Сүүлийн Match-ууд:**\n"
+    msg = "📜 **Сүүлийн Match-ууд:**\n"
 
     for i, entry in enumerate(reversed(recent_matches), 1):
-        winners = ", ".join(f"<@{uid}>" for uid in entry.get("winners", []))
-        losers = ", ".join(f"<@{uid}>" for uid in entry.get("losers", []))
-        mode = entry.get("mode", "unspecified")
-        raw_ts = entry.get("timestamp")
+        ts = entry.get("timestamp", "⏱️")
+        dt = datetime.fromisoformat(ts).astimezone(timezone(timedelta(hours=8)))
+        ts_str = dt.strftime("%Y-%m-%d %H:%M")
 
-        if raw_ts:
-            try:
-                dt = datetime.fromisoformat(raw_ts)
-                dt_mn = dt.astimezone(timezone(timedelta(hours=8)))  # MGL timezone
-                ts_str = dt_mn.strftime("%Y-%m-%d %H:%M")
-            except:
-                ts_str = raw_ts
-        else:
-            ts_str = "⏱️ цаггүй"
+        mode = entry.get("mode", "unknown")
+        winner = entry.get("winner_team")
+        loser = entry.get("loser_team")
+        changed = entry.get("changed_players", [])
+        teams = entry.get("teams", [])
 
-        message += f"\n**#{i} | {mode} | {ts_str}**\n🏆 {winners}\n💔 {losers}\n"
+        msg += f"\n**#{i} | {mode} | {ts_str}**\n"
 
-    await interaction.response.send_message(message)
+        for t_num, team in enumerate(teams, start=1):
+            tag = "🏆" if t_num == winner else "💔" if t_num == loser else "🎮"
+            players = ", ".join(f"<@{uid}>" for uid in team)
+            msg += f"{tag} Team {t_num}: {players}\n"
+
+        if changed:
+            for ch in changed:
+                msg += f"🔁 <@{ch['from']}> → <@{ch['to']}>\n"
+
+    await interaction.response.send_message(msg)
 
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
@@ -499,6 +432,7 @@ async def make_team(interaction: discord.Interaction, team_count: int,
     asyncio.create_task(auto_assign())
 
 
+
 @bot.tree.command(name="addme", description="Тоглогчоор бүртгүүлнэ")
 async def addme(interaction: discord.Interaction):
     if TEAM_SETUP["initiator_id"] is None:
@@ -610,13 +544,24 @@ async def make_team_go(interaction: discord.Interaction):
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
 
-    # 🗃️ Багийн бүрэлдэхүүнийг log файлд хадгалах
-    log_data = {
-        "timestamp": now.isoformat(),
-        "teams": team_ids
+    # 🗃️ Багийн бүрдлийг team_log.json-д хадгалах
+    team_log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "make_team_go",
+        "teams": TEAM_SETUP["teams"],
+        "initiator": interaction.user.id
     }
+
+    try:
+        with open("team_log.json", "r") as f:
+            team_log = json.load(f)
+    except FileNotFoundError:
+        team_log = []
+
+    team_log.append(team_log_entry)
     with open("team_log.json", "w") as f:
-        json.dump(log_data, f, indent=4)
+        json.dump(team_log, f, indent=2)
+
 
 
 # 🏆 Winner Team сонгох
@@ -698,12 +643,15 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     save_shields(shields)
     await update_nicknames_for_users(guild, changed_ids)
 
-    # 📝 Match log бүртгэх
+     # 🗃️ Match log хадгалах
     log_entry = {
-        "mode": "set_team",  # ← энэ command-ын төрөл
-        "winners": [str(uid) for uid in winning_user_ids],
-        "losers": [str(uid) for uid in losing_user_ids],
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "set_winner_team",  # эсвэл "fountain"
+        "teams": TEAM_SETUP.get("teams", []),
+        "winner_team": winning_team,
+        "loser_team": losing_team,
+        "changed_players": TEAM_SETUP.get("changed_players", []),
+        "initiator": interaction.user.id
     }
 
     try:
@@ -715,6 +663,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+
 
     await interaction.followup.send(f"🏆 Team {winning_team}-ийн гишүүд оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team}-ийн гишүүд оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
@@ -745,6 +694,27 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
 
     idx = user_ids.index(from_member.id)
     TEAM_SETUP["player_ids"][idx] = to_member.id
+    
+    # 🗃️ Солилцооны log team_log.json руу хадгалах
+    team_log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "change_player",
+        "teams": TEAM_SETUP.get("teams", []),
+        "changed_players": [{"from": from_member.id, "to": to_member.id}],
+        "initiator": interaction.user.id
+    }
+
+    try:
+        with open("team_log.json", "r") as f:
+            team_log = json.load(f)
+    except FileNotFoundError:
+        team_log = []
+
+    team_log.append(team_log_entry)
+    with open("team_log.json", "w") as f:
+        json.dump(team_log, f, indent=2)
+
+
 
     old_team = (idx // players_per_team) + 1  # Багийн дугаар (1-с эхэлнэ)
 
@@ -944,78 +914,6 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
             f"👤 {member.mention} хэрэглэгчид оноо бүртгэгдээгүй байна."
         )
 
-@bot.tree.command(name="match2", description="2v2 match result")
-@app_commands.describe(winner1="Ялагч 1", winner2="Ялагч 2",
-                       loser1="Ялагдагч 1", loser2="Ялагдагч 2")
-async def match2(interaction: discord.Interaction,
-                 winner1: discord.Member, winner2: discord.Member,
-                 loser1: discord.Member, loser2: discord.Member):
-
-    await interaction.response.defer(thinking=True)
-
-    all_winners = [winner1, winner2]
-    all_losers = [loser1, loser2]
-
-    if len(set(all_winners + all_losers)) < 4:
-        await interaction.followup.send("❌ Тоглогчид давхцаж байна!")
-        return
-
-    scores = load_scores()
-
-    for player in all_winners:
-        uid = str(player.id)
-        if not isinstance(scores.get(uid), dict):
-            scores[uid] = {"score": 0, "tier": "4-1"}
-        scores[uid]["score"] += 1
-        if scores[uid]["score"] >= 5:
-            scores[uid]["tier"] = promote_tier(scores[uid]["tier"])
-            scores[uid]["score"] = 0
-        scores[uid]["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    for player in all_losers:
-        uid = str(player.id)
-        if not isinstance(scores.get(uid), dict):
-            scores[uid] = {"score": 0, "tier": "4-1"}
-        scores[uid]["score"] -= 1
-        if scores[uid]["score"] <= -5:
-            scores[uid]["tier"] = demote_tier(scores[uid]["tier"])
-            scores[uid]["score"] = 0
-        scores[uid]["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    save_scores(scores)
-
-    # log.json-д хадгалах
-    log_entry = {
-        "mode": "2v2",  # ← энэ мөрийг нэм
-        "winners": [str(m.id) for m in all_winners],
-        "losers": [str(m.id) for m in all_losers],
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-
-    try:
-        with open(LOG_FILE, "r") as f:
-            log = json.load(f)
-    except FileNotFoundError:
-        log = []
-
-    log.append(log_entry)
-    with open(LOG_FILE, "w") as f:
-        json.dump(log, f, indent=2)
-
-    # last_match.json-д хадгалах
-    with open(LAST_FILE, "w") as f:
-        json.dump(log_entry, f, indent=2)
-
-    changed_ids = [m.id for m in all_winners + all_losers]
-    await update_nicknames_for_users(interaction.guild, changed_ids)
-
-    winners_mentions = ", ".join([m.mention for m in all_winners])
-    losers_mentions = ", ".join([m.mention for m in all_losers])
-
-    await interaction.followup.send(
-        f"🏆 Ялагчид: {winners_mentions} (+1)\n💔 Ялагдагчид: {losers_mentions} (-1)"
-    )
-
 @bot.tree.command(name="set_winner_team_fountain", description="Fountain дээр хожсон ба хожигдсон багуудад оноо өгнө")
 @app_commands.describe(
     winning_team="Хожсон багийн дугаар (1, 2, 3...)",
@@ -1079,12 +977,15 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     win_mentions = ", ".join([f"<@{uid}>" for uid in winning_ids])
     lose_mentions = ", ".join([f"<@{uid}>" for uid in losing_ids])
 
-    # 📝 Match log бүртгэх
+    # 🗃️ Match log хадгалах
     log_entry = {
-        "mode": "fountain",
-        "winners": [str(uid) for uid in winning_ids],
-        "losers": [str(uid) for uid in losing_ids],
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "set_winner_team",  # эсвэл "fountain"
+        "teams": TEAM_SETUP.get("teams", []),
+        "winner_team": winning_team,
+        "loser_team": losing_team,
+        "changed_players": TEAM_SETUP.get("changed_players", []),
+        "initiator": interaction.user.id
     }
 
     try:
@@ -1096,6 +997,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+
 
     await interaction.followup.send(
         f"🌊 **Fountain оноо өглөө!**\n"
@@ -1159,6 +1061,33 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
 
     TEAM_SETUP["team_count"] = max(TEAM_SETUP["team_count"], team_number)
     TEAM_SETUP["player_ids"].extend(user_ids)
+    TEAM_SETUP["players_per_team"] = max(TEAM_SETUP["players_per_team"], len(user_ids))
+    
+    # ➕ TEAM_SETUP["teams"]-д бүртгэнэ
+    while len(TEAM_SETUP.get("teams", [])) < team_number:
+        TEAM_SETUP.setdefault("teams", []).append([])
+
+    TEAM_SETUP["teams"][team_number - 1].extend(user_ids)
+
+    # 🗃️ Log хадгалах → team_log.json
+    team_log_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": "set_team",
+        "team_number": team_number,
+        "players": user_ids,
+        "initiator": interaction.user.id
+    }
+
+    try:
+        with open("team_log.json", "r") as f:
+            team_log = json.load(f)
+    except FileNotFoundError:
+        team_log = []
+
+    team_log.append(team_log_entry)
+    with open("team_log.json", "w") as f:
+        json.dump(team_log, f, indent=2)
+
 
     mentions_str = ", ".join([f"<@{uid}>" for uid in user_ids])
     await interaction.response.send_message(f"✅ **Team {team_number}** бүртгэгдлээ:\n• {mentions_str}")
