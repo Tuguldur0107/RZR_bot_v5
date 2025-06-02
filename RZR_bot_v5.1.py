@@ -200,6 +200,7 @@ async def match3(interaction: discord.Interaction, winner1: discord.Member,
     
     # 📜 Match log.json-д бүртгэх
     log_entry = {
+        "mode": "3v3",  # ← энэ мөрийг нэм
         "winners": [str(m.id) for m in all_winners],
         "losers": [str(m.id) for m in all_losers],
         "timestamp": datetime.now(timezone.utc).isoformat()
@@ -279,9 +280,11 @@ async def match_history(interaction: discord.Interaction):
         winners = ", ".join(f"<@{uid}>" for uid in entry.get("winners", []))
         losers = ", ".join(f"<@{uid}>" for uid in entry.get("losers", []))
         timestamp = entry.get("timestamp", "⏱️ цаггүй")
-        message += f"\n**#{i}** — 🏆 {winners} vs 💔 {losers} — `{timestamp}`"
+        mode = entry.get("mode", "unspecified")
+        message += f"\n**#{i} [{mode}]** — 🏆 {winners} vs 💔 {losers} — `{timestamp}`"
 
     await interaction.response.send_message(message)
+
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
@@ -662,6 +665,24 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     save_shields(shields)
     await update_nicknames_for_users(guild, changed_ids)
 
+    # 📝 Match log бүртгэх
+    log_entry = {
+        "mode": "set_team",  # ← энэ command-ын төрөл
+        "winners": [str(uid) for uid in winning_user_ids],
+        "losers": [str(uid) for uid in losing_user_ids],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    try:
+        with open(LOG_FILE, "r") as f:
+            log = json.load(f)
+    except FileNotFoundError:
+        log = []
+
+    log.append(log_entry)
+    with open(LOG_FILE, "w") as f:
+        json.dump(log, f, indent=2)
+
     await interaction.followup.send(f"🏆 Team {winning_team}-ийн гишүүд оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team}-ийн гишүүд оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
 
@@ -926,6 +947,7 @@ async def match2(interaction: discord.Interaction,
 
     # log.json-д хадгалах
     log_entry = {
+        "mode": "2v2",  # ← энэ мөрийг нэм
         "winners": [str(m.id) for m in all_winners],
         "losers": [str(m.id) for m in all_losers],
         "timestamp": datetime.now(timezone.utc).isoformat()
@@ -1012,6 +1034,24 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
     win_mentions = ", ".join([f"<@{uid}>" for uid in winning_ids])
     lose_mentions = ", ".join([f"<@{uid}>" for uid in losing_ids])
+
+    # 📝 Match log бүртгэх
+    log_entry = {
+        "mode": "fountain",
+        "winners": [str(uid) for uid in winning_ids],
+        "losers": [str(uid) for uid in losing_ids],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    try:
+        with open(LOG_FILE, "r") as f:
+            log = json.load(f)
+    except FileNotFoundError:
+        log = []
+
+    log.append(log_entry)
+    with open(LOG_FILE, "w") as f:
+        json.dump(log, f, indent=2)
 
     await interaction.followup.send(
         f"🌊 **Fountain оноо өглөө!**\n"
