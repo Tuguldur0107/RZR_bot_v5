@@ -505,6 +505,10 @@ async def addme(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ /make_team командаар эхлүүлсний дараа /addme ашиглана уу.")
         return
 
+    if GAME_SESSION["active"]:
+        await interaction.response.send_message("⚠️ Session аль хэдийн эхэлсэн байна, дахин бүртгүүлэх боломжгүй.", ephemeral=True)
+        return
+
     user_id = interaction.user.id
     if user_id not in TEAM_SETUP["player_ids"]:
         TEAM_SETUP["player_ids"].append(user_id)
@@ -514,9 +518,7 @@ async def addme(interaction: discord.Interaction):
             f"📋 Бүртгэгдсэн тоглогчид: {all_players}"
         )
     else:
-        await interaction.response.send_message(
-            "⚠️ Та аль хэдийн бүртгэгдсэн байна."
-        )
+        await interaction.response.send_message("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
 
 
 
@@ -1103,36 +1105,19 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
 @bot.tree.command(name="active_teams", description="Идэвхтэй багуудын жагсаалт")
 async def active_teams(interaction: discord.Interaction):
-    if not GAME_SESSION["active"]:
+    if not GAME_SESSION["active"] or "teams" not in TEAM_SETUP:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
         return
 
-    user_ids = TEAM_SETUP["player_ids"]
-    team_count = TEAM_SETUP["team_count"]
-
-    if not user_ids or team_count == 0:
-        await interaction.response.send_message("📭 Бүртгэлтэй баг алга байна.")
-        return
-
     guild = interaction.guild
-    team_size = len(user_ids) // team_count  # 🧠 автоматаар тооцно
-
     msg = "📋 **Идэвхтэй багуудын жагсаалт:**\n"
 
-    for i in range(team_count):
-        start = i * team_size
-        end = start + team_size
-        team_members = user_ids[start:end]
-
+    for i, team_members in enumerate(TEAM_SETUP["teams"], start=1):
         mentions = []
         for uid in team_members:
             member = guild.get_member(uid)
-            if member:
-                mentions.append(member.mention)
-            else:
-                mentions.append(f"<@{uid}>")
-
-        msg += f"\n🥇 **Team {i+1}:**\n• " + ", ".join(mentions) + "\n"
+            mentions.append(member.mention if member else f"<@{uid}>")
+        msg += f"\n🥇 **Team {i}:**\n• " + ", ".join(mentions) + "\n"
 
     await interaction.response.send_message(msg)
 
