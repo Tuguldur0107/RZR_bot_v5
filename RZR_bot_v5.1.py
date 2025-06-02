@@ -82,8 +82,12 @@ def load_scores():
         return json.load(f)
 
 def save_scores(data):
-    with open(SCORE_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        with open(SCORE_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+        print("✅ scores.json амжилттай хадгалагдлаа.")
+    except Exception as e:
+        print("❌ scores.json хадгалах үед алдаа:", e)
 
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
@@ -1062,7 +1066,7 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
     TEAM_SETUP["team_count"] = max(TEAM_SETUP["team_count"], team_number)
     TEAM_SETUP["player_ids"].extend(user_ids)
     TEAM_SETUP["players_per_team"] = max(TEAM_SETUP["players_per_team"], len(user_ids))
-    
+
     # ➕ TEAM_SETUP["teams"]-д бүртгэнэ
     while len(TEAM_SETUP.get("teams", [])) < team_number:
         TEAM_SETUP.setdefault("teams", []).append([])
