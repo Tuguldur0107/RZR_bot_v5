@@ -1288,4 +1288,5 @@ async def on_message(message):
     # 📢 Энэ нь command-уудыг ажиллах боломжтой болгодог заавал байх ёстой
     await bot.process_commands(message)
 
-bot.run("TOKEN")
+TOKEN = os.environ["TOKEN"]
+client.run(TOKEN)
