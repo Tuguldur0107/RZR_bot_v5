@@ -1510,6 +1510,8 @@ async def backup_now(interaction: discord.Interaction):
 
 @bot.event
 async def on_ready():
+    print("👀 on_ready эхэллээ")
+    copy_files_to_volume()
     print(f"🤖 Bot logged in as {bot.user}")
     print("📁 Working directory:", os.getcwd())
 
