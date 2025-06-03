@@ -329,7 +329,6 @@ async def match_history(interaction: discord.Interaction):
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
     print("🔥 /my_score эхэллээ")
     await interaction.response.defer(ephemeral=False)
 
