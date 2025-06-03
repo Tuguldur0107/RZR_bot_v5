@@ -327,6 +327,8 @@ async def match_history(interaction: discord.Interaction):
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=False)  # 🔥 Discord interaction-г 3 секундээс өмнө баталгаажуулна
+
     scores = load_scores()
     user_id = str(interaction.user.id)
     data = scores.get(user_id)
