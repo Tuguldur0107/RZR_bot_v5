@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 import base64
 import requests
-from copy_to_volume import copy_files_to_volume
+
 
 BASE_DIR = "/mnt/data"
 
@@ -327,7 +327,8 @@ async def match_history(interaction: discord.Interaction):
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # Interaction-г баталгаажуулж байна
+    print("🔥 /my_score эхэллээ")
+    await interaction.response.defer(ephemeral=False)
 
     scores = load_scores()
     user_id = str(interaction.user.id)
@@ -347,11 +348,12 @@ async def my_score(interaction: discord.Interaction):
             except:
                 msg += f"\n🕓 Сүүлд шинэчлэгдсэн: `{updated}`"
 
-        await interaction.followup.send(content=msg)  # ❗ response биш, FOLLOWUP
+        await interaction.followup.send(content=msg)
     else:
         await interaction.followup.send(
             content=f"📿 {interaction.user.mention} танд оноо бүртгэгдээгүй байна.\n🎖 Түвшин: **Tier-гүй байна**"
         )
+
 
 @bot.tree.command(name="scoreboard", description="Бүх тоглогчдын онооны жагсаалт")
 async def scoreboard(interaction: discord.Interaction):
@@ -1513,8 +1515,7 @@ async def backup_now(interaction: discord.Interaction):
 
 @bot.event
 async def on_ready():
-    print("👀 on_ready эхэллээ")
-    copy_files_to_volume()
+
     print(f"🤖 Bot logged in as {bot.user}")
     print("📁 Working directory:", os.getcwd())
 
