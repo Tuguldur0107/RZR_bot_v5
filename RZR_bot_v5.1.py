@@ -17,6 +17,7 @@ LOG_FILE = "match_log.json"
 LAST_FILE = "last_match.json"
 SHIELD_FILE = "donate_shields.json"
 DONATOR_FILE = "donator.json"
+SCORE_LOG_FILE = "score_log.jsonl"
 
 # 🧠 Тоглоомын Session-н төлөв
 GAME_SESSION = {
@@ -89,6 +90,17 @@ def save_scores(data):
     except Exception as e:
         print("❌ scores.json хадгалах үед алдаа:", e)
 
+def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: str = ""):
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uid": uid,
+        "delta": delta,
+        "total": total,
+        "tier": tier,
+        "reason": reason
+    }
+    with open(SCORE_LOG_FILE, "a") as f:
+        f.write(json.dumps(entry) + "\n")
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
@@ -192,6 +204,7 @@ async def undo_last_match(interaction: discord.Interaction):
                 "tier": data.get("tier", "4-1"),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
+            log_score_transaction(uid_str, -1, score, tier, "undo win")
             changed_ids.append(int(uid))
 
     for uid in last.get("losers", []):
@@ -210,6 +223,7 @@ async def undo_last_match(interaction: discord.Interaction):
                 "tier": data.get("tier", "4-1"),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
+            log_score_transaction(uid_str, +1, score, tier, "undo loss")
             changed_ids.append(int(uid))
 
     save_scores(scores)
@@ -650,6 +664,8 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        log_score_transaction(uid_str, +1, score, tier, "win")
+
 
         changed_ids.append(uid)
         if member:
@@ -674,6 +690,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        log_score_transaction(uid_str, -1, score, tier, "loss")
 
         changed_ids.append(uid)
         if member:
@@ -703,6 +720,18 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+
+    last_entry = {
+        "timestamp": log_entry["timestamp"],
+        "mode": log_entry["mode"],
+        "winners": winning_ids,
+        "losers": losing_ids
+    }
+    with open(LAST_FILE, "w") as f:
+        json.dump(last_entry, f, indent=2)
+
+
+
 
     await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
@@ -1004,6 +1033,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        log_score_transaction(uid_str, +2, score, tier, "fountain win")
 
         changed_ids.append(uid)
 
@@ -1024,6 +1054,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        log_score_transaction(uid_str, -2, score, tier, "fountain loss")
 
         changed_ids.append(uid)
 
@@ -1052,6 +1083,15 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+
+    last_entry = {
+        "timestamp": log_entry["timestamp"],
+        "mode": "fountain",
+        "winners": winning_ids,
+        "losers": losing_ids
+    }
+    with open(LAST_FILE, "w") as f:
+        json.dump(last_entry, f, indent=2)
 
     await interaction.followup.send(
         f"🌊 **Fountain оноо өглөө!**\n"
@@ -1356,6 +1396,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+        log_score_transaction(uid, points, score, tier, "manual")
 
         print(f"[add_score] {member.name} оноо: {score}, tier: {tier}")
         updated.append(member)
