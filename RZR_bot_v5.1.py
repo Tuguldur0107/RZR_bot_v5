@@ -171,33 +171,16 @@ async def github_auto_commit():
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="/", intents=intents)
 
-
-async def update_all_nicknames(guild):
-    scores = load_scores()
-    for user_id, data in scores.items():
-        member = guild.get_member(int(user_id))
-        if member:
-            score = data.get("score", 0)
-            tier = data.get("tier", "4-1")
-            try:
-                base_nick = member.nick or member.name
-                for prefix in TIER_ORDER:
-                    if base_nick.startswith(f"{prefix} |"):
-                        base_nick = base_nick[len(prefix) + 2:].strip()
-                new_nick = f"{tier} | {base_nick}"
-                await member.edit(nick=new_nick)
-            except discord.Forbidden:
-                print(
-                    f"⛔️ {member} nickname-г өөрчилж чадсангүй (permission issue)."
-                )
-            except Exception as e:
-                print(f"⚠️ {member} nickname болоход алдаа гарлаа: {e}")
-    save_scores(scores)
-
-
-@bot.tree.command(name="ping", description="Ping test")
-async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message("🏓 Pong!")
+def clean_nickname(nick: str) -> str:
+    for prefix in TIER_ORDER:
+        if nick.startswith(f"{prefix} |"):
+            nick = nick[len(prefix) + 2:].strip()
+            break
+    for emoji in ["💰", "💸", "👑"]:
+        if nick.startswith(f"{emoji} "):
+            nick = nick[len(emoji) + 1:].strip()
+            break
+    return nick
 
 async def update_nicknames_for_users(guild, user_ids: list):
     scores = load_scores()
@@ -210,15 +193,17 @@ async def update_nicknames_for_users(guild, user_ids: list):
             tier = data.get("tier", "4-1")
             try:
                 base_nick = member.nick or member.name
-                for prefix in TIER_ORDER:
-                    if base_nick.startswith(f"{prefix} |"):
-                        base_nick = base_nick[len(prefix)+2:].strip()
+                base_nick = clean_nickname(base_nick)
                 new_nick = f"{tier} | {base_nick}"
                 await member.edit(nick=new_nick)
             except discord.Forbidden:
                 print(f"⛔️ {member} nickname-г өөрчилж чадсангүй (permission issue).")
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
+
+@bot.tree.command(name="ping", description="Ping test")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("🏓 Pong!")
 
 @bot.tree.command(name="undo_last_match", description="Сүүлд хийсэн match-ийн оноог буцаана")
 async def undo_last_match(interaction: discord.Interaction):
