@@ -425,25 +425,28 @@ TEAM_SETUP = {
     "player_ids": []
 }
 
-@bot.tree.command(name="make_team",
-                  description="Тоглох багийн тохиргоог эхлүүлнэ")
-@app_commands.describe(team_count="Хэдэн багтай байх вэ",
-                       players_per_team="Нэг багт хэдэн хүн байх вэ")
-async def make_team(interaction: discord.Interaction, team_count: int,
-                    players_per_team: int):
+@bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
+@app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
+async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
+    # 🔄 Хуучин session-ийг дуусгаж, шинэ тохиргоо эхлүүлнэ
+    GAME_SESSION["active"] = False
+    GAME_SESSION["start_time"] = None
+    GAME_SESSION["last_win_time"] = None
+
     TEAM_SETUP["initiator_id"] = interaction.user.id
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
     TEAM_SETUP["player_ids"] = []
+    TEAM_SETUP["teams"] = []
+    TEAM_SETUP["changed_players"] = []
 
     await interaction.response.send_message(
         f"🎯 Багийн тохиргоо эхэллээ! Нийт {team_count} баг, нэг багт {players_per_team} хүн байна. "
         f"Тоглогчид /addme гэж бүртгүүлнэ үү.\n"
         f"⏳ **5 минутын дараа автоматаар баг хуваарилна.**")
 
-    # Таймер асаана
     async def auto_assign():
-        await asyncio.sleep(300)  # 5 минут
+        await asyncio.sleep(300)
         fake = type("FakeInteraction", (), {})()
         fake.user = interaction.user
         fake.guild = interaction.guild
@@ -453,7 +456,6 @@ async def make_team(interaction: discord.Interaction, team_count: int,
         await make_team_go(fake)
 
     asyncio.create_task(auto_assign())
-
 
 
 @bot.tree.command(name="addme", description="Тоглогчоор бүртгүүлнэ")
@@ -563,6 +565,7 @@ async def make_team_go(interaction: discord.Interaction):
     TEAM_SETUP["teams"] = team_ids
 
     now = datetime.now(timezone.utc)
+
     GAME_SESSION["active"] = True
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
