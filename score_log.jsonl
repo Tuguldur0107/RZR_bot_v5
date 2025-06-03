@@ -34,3 +34,15 @@
 {"timestamp": "2025-06-03T20:49:12.807263+00:00", "uid": "1177278973416329276", "delta": 1, "total": 0, "tier": "4-2", "reason": "manual"}
 {"timestamp": "2025-06-03T20:49:14.138974+00:00", "uid": "1355912063062380574", "delta": 1, "total": 0, "tier": "4-2", "reason": "manual"}
 {"timestamp": "2025-06-03T20:49:15.404884+00:00", "uid": "762023843937779793", "delta": 1, "total": 2, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-03T20:57:52.654215+00:00", "uid": "1144889256507080754", "delta": 1, "total": -1, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-03T20:57:53.999155+00:00", "uid": "1167093799634337914", "delta": 1, "total": 0, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-03T20:57:55.273404+00:00", "uid": "1177278973416329276", "delta": 1, "total": 1, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-03T20:57:56.480924+00:00", "uid": "1355912063062380574", "delta": 1, "total": 1, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-03T20:57:57.684780+00:00", "uid": "762023843937779793", "delta": 1, "total": 3, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-03T20:59:01.831446+00:00", "uid": "955969999921631254", "delta": -1, "total": 3, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-03T20:59:03.179552+00:00", "uid": "1192957605644091395", "delta": -1, "total": -2, "tier": 3, "reason": "manual"}
+{"timestamp": "2025-06-03T20:59:04.430757+00:00", "uid": "1341467374875967561", "delta": -1, "total": 0, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-03T20:59:05.772131+00:00", "uid": "1325383617555206206", "delta": -1, "total": -1, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-03T21:02:17.886805+00:00", "uid": "1177278973416329276", "delta": 1, "total": 2, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-03T21:02:19.147674+00:00", "uid": "1167093799634337914", "delta": 1, "total": 1, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-03T21:02:20.496544+00:00", "uid": "955969999921631254", "delta": 1, "total": 4, "tier": "4-1", "reason": "manual"}
