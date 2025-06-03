@@ -99,6 +99,7 @@ def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: s
         "tier": tier,
         "reason": reason
     }
+    print(f"[score_log] {entry}")  # ← энэ мөр нэм
     with open(SCORE_LOG_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
 
