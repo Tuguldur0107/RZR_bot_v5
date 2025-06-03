@@ -43,7 +43,6 @@ def load_donators():
 def save_donators(data):
     with open(DONATOR_FILE, "w") as f:
         json.dump(data, f, indent=4)
-    commit_to_github(DONATOR_FILE, "update donator.json")
 
 def get_donator_emoji(data):
     from datetime import datetime, timezone, timedelta
@@ -77,7 +76,6 @@ def load_shields():
 def save_shields(data):
     with open(SHIELD_FILE, "w") as f:
         json.dump(data, f, indent=4)
-    commit_to_github(SHIELD_FILE, "update donate_shields.json")
 
 def load_scores():
     if not os.path.exists(SCORE_FILE):
@@ -90,7 +88,6 @@ def save_scores(data):
         with open(SCORE_FILE, "w") as f:
             json.dump(data, f, indent=4)
         print("✅ scores.json амжилттай хадгалагдлаа.")
-        commit_to_github(SCORE_FILE, "update scores.json")
     except Exception as e:
         print("❌ scores.json хадгалах үед алдаа:", e)
 
@@ -106,7 +103,6 @@ def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: s
     print(f"[score_log] {entry}")
     with open(SCORE_LOG_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
-    commit_to_github(SCORE_LOG_FILE, "append score_log.jsonl")
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
@@ -302,7 +298,6 @@ async def undo_last_match(interaction: discord.Interaction):
 
     save_scores(scores)
     await update_nicknames_for_users(interaction.guild, changed_ids)
-    commit_to_github(LAST_FILE, "update last_match.json")
     await interaction.followup.send("↩️ Сүүлийн match-ийн оноо буцаагдлаа.")
 
 @bot.tree.command(name="match_history", description="Сүүлийн тоглолтуудын жагсаалтыг харуулна")
@@ -763,7 +758,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
-    commit_to_github(LOG_FILE, "update match_log.json")
 
     last_entry = {
         "timestamp": log_entry["timestamp"],
@@ -773,7 +767,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     }
     with open(LAST_FILE, "w") as f:
         json.dump(last_entry, f, indent=2)
-    commit_to_github(LAST_FILE, "update last_match.json")
 
     await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
@@ -1093,7 +1086,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
-    commit_to_github(LOG_FILE, "update match_log.json")
 
     last_entry = {
         "timestamp": log_entry["timestamp"],
