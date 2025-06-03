@@ -1345,8 +1345,16 @@ async def donator_list(interaction: discord.Interaction):
             emoji = get_donator_emoji(data)
             total = data.get("total_mnt", 0)
             tier = scores.get(uid, {}).get("tier", "4-1")
-            display = f"{emoji} {tier} | {member.display_name}" if emoji else f"{tier} | {member.display_name}"
+
+            display_name = member.display_name
+            for prefix in TIER_ORDER:
+                if display_name.startswith(f"{prefix} |"):
+                    display_name = display_name[len(prefix) + 2:].strip()
+                    break
+
+            display = f"{emoji} {tier} | {display_name}" if emoji else f"{tier} | {display_name}"
             msg += f"{display} — {total:,}₮\n"
+
 
     await interaction.followup.send(msg)
 
