@@ -3,7 +3,7 @@ import os
 
 def copy_files_to_volume():
     print("🔥 JSON хуулалт эхэллээ")
-    # Railway дотор GitHub repo-гийн root зам
+
     LOCAL_PATH = "/app"
     VOLUME_PATH = "/mnt/data"
 
@@ -25,9 +25,3 @@ def copy_files_to_volume():
             print(f"✅ {file} → /mnt/data руу хууллаа.")
         except Exception as e:
             print(f"❌ {file} хуулж чадсангүй: {e}")
-
-@bot.event
-async def on_ready():
-    print("👀 on_ready эхэллээ")  # ← log дээр гарч байгаа эсэхийг шалга
-    copy_files_to_volume()        # ← sync function тул шууд дуудна
-    ...
