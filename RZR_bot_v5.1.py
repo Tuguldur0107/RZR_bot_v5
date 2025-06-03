@@ -68,10 +68,6 @@ def get_donator_emoji(data):
     else:
         return "💰"
 
-def is_vip(uid):
-    donors = load_donators()
-    return str(uid) in donors
-
 def load_shields():
     if not os.path.exists(SHIELD_FILE):
         return {}
@@ -117,7 +113,6 @@ TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
 
 # Tier ахих, буурах функц
 
-
 def promote_tier(current_tier):
     idx = TIER_ORDER.index(current_tier)
     return TIER_ORDER[max(0, idx - 1)]  # ахих
@@ -158,19 +153,6 @@ def commit_to_github(filename, message="update"):
     else:
         print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
 
-async def github_auto_commit():
-    while True:
-        await asyncio.sleep(3600)  # 60 минут
-        commit_to_github(SCORE_FILE, "auto: scores.json")
-        commit_to_github(SCORE_LOG_FILE, "auto: score_log.jsonl")
-        commit_to_github(LOG_FILE, "auto: match_log.json")
-        commit_to_github(DONATOR_FILE, "auto: donator.json")
-        commit_to_github(SHIELD_FILE, "auto: donate_shields.json")
-
-
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="/", intents=intents)
-
 def clean_nickname(nick: str) -> str:
     for prefix in TIER_ORDER:
         if nick.startswith(f"{prefix} |"):
@@ -182,6 +164,26 @@ def clean_nickname(nick: str) -> str:
             break
     return nick
 
+
+def load_shields():
+    if not os.path.exists(SHIELD_FILE):
+        return {}
+    with open(SHIELD_FILE, "r") as f:
+        return json.load(f)
+
+def save_shields(data):
+    with open(SHIELD_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+async def github_auto_commit():
+    while True:
+        await asyncio.sleep(3600)  # 60 минут
+        commit_to_github(SCORE_FILE, "auto: scores.json")
+        commit_to_github(SCORE_LOG_FILE, "auto: score_log.jsonl")
+        commit_to_github(LOG_FILE, "auto: match_log.json")
+        commit_to_github(DONATOR_FILE, "auto: donator.json")
+        commit_to_github(SHIELD_FILE, "auto: donate_shields.json")
+
 async def update_nicknames_for_users(guild, user_ids: list):
     scores = load_scores()
     for user_id in user_ids:
@@ -190,7 +192,7 @@ async def update_nicknames_for_users(guild, user_ids: list):
             continue
         member = guild.get_member(int(user_id))
         if member:
-            tier = data.get("tier", "4-1")
+            tier = data.get("tier", get_tier())
             try:
                 base_nick = member.nick or member.name
                 base_nick = clean_nickname(base_nick)
@@ -200,6 +202,24 @@ async def update_nicknames_for_users(guild, user_ids: list):
                 print(f"⛔️ {member} nickname-г өөрчилж чадсангүй (permission issue).")
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
+
+# ⏱️ Session хугацаа дууссан эсэх шалгагч task
+async def session_timeout_checker():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        await asyncio.sleep(60)  # 1 минут тутамд шалгана
+        if GAME_SESSION["active"]:
+            now = datetime.now(timezone.utc)
+            elapsed = now - GAME_SESSION["last_win_time"]
+            if elapsed.total_seconds() > 86400:  # 24 цаг = 86400 секунд
+                GAME_SESSION["active"] = False
+                GAME_SESSION["start_time"] = None
+                GAME_SESSION["last_win_time"] = None
+                print("🔚 Session автоматаар хаагдлаа (24 цаг өнгөрсөн).")
+
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="/", intents=intents)
+
 
 @bot.tree.command(name="ping", description="Ping test")
 async def ping(interaction: discord.Interaction):
@@ -234,7 +254,7 @@ async def undo_last_match(interaction: discord.Interaction):
             if score < 0:
                 score = 0
 
-            tier = data.get("tier", "4-1")
+            tier = data.get("tier", get_tier())
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
@@ -256,7 +276,7 @@ async def undo_last_match(interaction: discord.Interaction):
             if score > 5:
                 score = 5
 
-            tier = data.get("tier", "4-1")
+            tier = data.get("tier", get_tier())
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
@@ -336,7 +356,7 @@ async def my_score(interaction: discord.Interaction):
 
     if isinstance(data, dict):
         score = data.get("score", 0)
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
         updated = data.get("updated_at")
 
         msg = f"📿 {interaction.user.mention} таны оноо: {score}\n🎖 Түвшин: **{tier}**"
@@ -436,7 +456,7 @@ async def user_tier(interaction: discord.Interaction, member: discord.Member):
     data = scores.get(user_id)
 
     if isinstance(data, dict):
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
         await interaction.followup.send(
             f"🎖 {member.mention} хэрэглэгчийн түвшин: **{tier}**"
         )
@@ -547,7 +567,7 @@ async def make_team_go(interaction: discord.Interaction):
         if not member:
             continue
         data = scores.get(str(uid), {"tier": "4-1", "score": 0})
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
         score = data.get("score", 0)
         base = tier_score.get(tier, 5)
         real_score = base + score
@@ -664,7 +684,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) + 1
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
 
         while score >= 5:
             tier = promote_tier(tier)
@@ -687,7 +707,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0)
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
 
         if await should_deduct(uid_str, shields):
             score -= 1
@@ -802,16 +822,6 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
         f"🔁 {from_member.mention} → {to_member.mention} солигдлоо!\n"
         f"📌 {from_member.mention} нь Team {old_team}-д байсан."
     )
-
-def load_shields():
-    if not os.path.exists(SHIELD_FILE):
-        return {}
-    with open(SHIELD_FILE, "r") as f:
-        return json.load(f)
-
-def save_shields(data):
-    with open(SHIELD_FILE, "w") as f:
-        json.dump(data, f, indent=4)
 
 @bot.tree.command(name="donate_shield", description="Тоглогчид хамгаалалтын удаа онооно")
 @app_commands.describe(
@@ -957,7 +967,7 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
 
     if isinstance(data, dict):
         score = data.get("score", 0)
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
         await interaction.followup.send(
             f"👤 {member.mention} хэрэглэгчийн оноо: {score}\n🎖 Түвшин: **{tier}**"
         )
@@ -1011,7 +1021,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) + 2
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
 
         while score >= 5:
             tier = promote_tier(tier)
@@ -1031,7 +1041,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) - 2
-        tier = data.get("tier", "4-1")
+        tier = data.get("tier", get_tier())
 
         while score <= -5:
             tier = demote_tier(tier)
@@ -1412,7 +1422,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
 
         data = scores.get(uid_str, {})
         old_score = data.get("score", 0)
-        old_tier = data.get("tier", "4-1")
+        old_tier = data.get("tier", get_tier())
         score = old_score + points
         tier = old_tier
 
@@ -1444,20 +1454,6 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         msg += f"\n⚠️ Fetch хийхэд алдаа гарсан: {fail_mentions}"
 
     await interaction.followup.send(msg or "⚠️ Оноо шинэчилсэн хэрэглэгч олдсонгүй.")
-
-# ⏱️ Session хугацаа дууссан эсэх шалгагч task
-async def session_timeout_checker():
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        await asyncio.sleep(60)  # 1 минут тутамд шалгана
-        if GAME_SESSION["active"]:
-            now = datetime.now(timezone.utc)
-            elapsed = now - GAME_SESSION["last_win_time"]
-            if elapsed.total_seconds() > 86400:  # 24 цаг = 86400 секунд
-                GAME_SESSION["active"] = False
-                GAME_SESSION["start_time"] = None
-                GAME_SESSION["last_win_time"] = None
-                print("🔚 Session автоматаар хаагдлаа (24 цаг өнгөрсөн).")
 
 @bot.tree.command(name="resync", description="Slash командуудыг дахин сервертэй sync хийнэ (зөвхөн админд)")
 async def resync(interaction: discord.Interaction):
