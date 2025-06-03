@@ -633,11 +633,6 @@ async def make_team_go(interaction: discord.Interaction):
 
 # 🏆 Winner Team сонгох
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
-@app_commands.describe(
-    winning_team="Хожсон багийн дугаар (1, 2, 3...)",
-    losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
-)
-async def set_winn@bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
 @app_commands.describe(winning_team="Хожсон багийн дугаар", losing_team="Хожигдсон багийн дугаар")
 async def set_winner_team(interaction: discord.Interaction, winning_team: int, losing_team: int):
     try:
