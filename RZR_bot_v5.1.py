@@ -223,7 +223,12 @@ async def update_nicknames_for_users(guild, user_ids: list):
 
 @bot.tree.command(name="undo_last_match", description="Сүүлд хийсэн match-ийн оноог буцаана")
 async def undo_last_match(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     try:
         with open(LAST_FILE, "r") as f:
             last = json.load(f)
@@ -286,7 +291,13 @@ async def undo_last_match(interaction: discord.Interaction):
 
 @bot.tree.command(name="match_history", description="Сүүлийн тоглолтуудын жагсаалтыг харуулна")
 async def match_history(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     try:
         with open(LOG_FILE, "r") as f:
             log = json.load(f)
@@ -329,8 +340,12 @@ async def match_history(interaction: discord.Interaction):
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
     print("🔥 /my_score эхэллээ")
-    await interaction.response.defer(ephemeral=False)
 
     scores = load_scores()
     user_id = str(interaction.user.id)
@@ -359,7 +374,13 @@ async def my_score(interaction: discord.Interaction):
 
 @bot.tree.command(name="scoreboard", description="Бүх тоглогчдын онооны жагсаалт")
 async def scoreboard(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     # ✅ Админ эрх шалгах
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
@@ -429,7 +450,13 @@ async def scoreboard(interaction: discord.Interaction):
     description="Бүх тоглогчийн оноог 0 болгоно (tier өөрчлөхгүй)"
 )
 async def reset_scores(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
@@ -458,8 +485,14 @@ async def reset_scores(interaction: discord.Interaction):
     description="Бүх тоглогчийн түвшинг 4-1 болгож, оноог 0 болгоно"
 )
 async def reset_tier(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
-    # ✅ зөвхөн админ хэрэглэгч ажиллуулна
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
+     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
@@ -482,7 +515,13 @@ async def reset_tier(interaction: discord.Interaction):
 @bot.tree.command(name="user_tier", description="Хэрэглэгчийн түвшинг харуулна")
 @app_commands.describe(member="Түвшин шалгах хэрэглэгч")
 async def user_tier(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+    
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     scores = load_scores()
     user_id = str(member.id)
     data = scores.get(user_id)
@@ -506,7 +545,13 @@ TEAM_SETUP = {
 @bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
 @app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
 async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+       
     # 🔄 Хуучин session-ийг дуусгаж, шинэ тохиргоо эхлүүлнэ
     GAME_SESSION["active"] = False
     GAME_SESSION["start_time"] = None
@@ -539,7 +584,13 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
 
 @bot.tree.command(name="addme", description="Тоглогчоор бүртгүүлнэ")
 async def addme(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+    
     if TEAM_SETUP["initiator_id"] is None:
         await interaction.response.send_message("⚠️ /make_team командаар эхлүүлсний дараа /addme ашиглана уу.")
         return
@@ -563,7 +614,13 @@ async def addme(interaction: discord.Interaction):
 
 @bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг багт хуваана")
 async def make_team_go(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+     
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
         await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
         return
@@ -678,7 +735,13 @@ async def make_team_go(interaction: discord.Interaction):
     losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
 )
 async def set_winner_team(interaction: discord.Interaction, winning_team: int, losing_team: int):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
         await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулна.", ephemeral=True)
         return
@@ -808,7 +871,13 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 @bot.tree.command(name="change_player", description="Багт тоглогч солих")
 @app_commands.describe(from_member="Солигдох тоглогч", to_member="Шинэ тоглогч")
 async def change_player(interaction: discord.Interaction, from_member: discord.Member, to_member: discord.Member):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # Зөвхөн эхлүүлэгч ажиллуулах эрхтэй эсэх шалгах
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
         await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
@@ -876,7 +945,13 @@ def save_shields(data):
     count="Хэдэн удаа хамгаалах вэ (default: 1)"
 )
 async def donate_shield(interaction: discord.Interaction, member: discord.Member, count: int = 1):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # ✅ Зөвхөн админ хэрэглэгч шалгах
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
@@ -901,7 +976,12 @@ async def donate_shield(interaction: discord.Interaction, member: discord.Member
 @bot.tree.command(name="init_scores",
                   description="Бүх гишүүдэд default оноо, tier (4-1) онооно")
 async def init_scores(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return    
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
@@ -945,7 +1025,13 @@ async def init_scores(interaction: discord.Interaction):
     new_tier="Шинэ tier (жишээ: 3-2, 4-1)"
 )
 async def set_tier(interaction: discord.Interaction, member: discord.Member, new_tier: str):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # ✅ зөвхөн админ эрхтэй хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
@@ -985,7 +1071,13 @@ async def set_tier(interaction: discord.Interaction, member: discord.Member, new
 @bot.tree.command(name="delete_tier",
                   description="Бүх гишүүний оноо ба tier-г бүрэн устгана")
 async def delete_tier(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
@@ -1037,7 +1129,13 @@ async def delete_tier(interaction: discord.Interaction):
 @bot.tree.command(name="user_score", description="Хэрэглэгчийн оноо болон түвшинг харуулна")
 @app_commands.describe(member="Оноог шалгах хэрэглэгч")
 async def user_score(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     scores = load_scores()
     user_id = str(member.id)
     data = scores.get(user_id)
@@ -1059,7 +1157,13 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
     losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
 )
 async def set_winner_team_fountain(interaction: discord.Interaction, winning_team: int, losing_team: int):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
         await interaction.response.send_message("❌ Зөвхөн тохиргоо эхлүүлсэн хүн ажиллуулж чадна.", ephemeral=True)
         return
@@ -1172,7 +1276,13 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
 @bot.tree.command(name="active_teams", description="Идэвхтэй багуудын жагсаалт")
 async def active_teams(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not GAME_SESSION["active"] or "teams" not in TEAM_SETUP:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
         return
@@ -1196,7 +1306,13 @@ async def active_teams(interaction: discord.Interaction):
     mentions="Багийн гишүүдийн mention-ууд (@user @user...)"
 )
 async def set_team(interaction: discord.Interaction, team_number: int, mentions: str):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
         return
@@ -1265,7 +1381,13 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
     mentions="Шинэ багийн гишүүдийн mention-ууд"
 )
 async def add_team(interaction: discord.Interaction, mentions: str):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # Зөвхөн session эхлүүлэгч ашиглах эрхтэй эсэхийг шалгах
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
         await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ашиглах эрхтэй.", ephemeral=True)
@@ -1307,7 +1429,13 @@ async def add_team(interaction: discord.Interaction, mentions: str):
     mnt="Хандивласан мөнгө (₮)"
 )
 async def add_donator(interaction: discord.Interaction, member: discord.Member, mnt: int):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
@@ -1361,7 +1489,13 @@ async def add_donator(interaction: discord.Interaction, member: discord.Member, 
 
 @bot.tree.command(name="donator_list", description="Donator хэрэглэгчдийн жагсаалт")
 async def donator_list(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ашиглаж болно.", ephemeral=True)
         return
@@ -1399,7 +1533,13 @@ async def should_deduct(uid_str: str, shields: dict) -> bool:
 
 @bot.tree.command(name="all_commands", description="Ботод бүртгэлтэй бүх / командуудыг харуулна")
 async def all_commands(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     # ✅ Админ эрх шалгана
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
@@ -1426,7 +1566,12 @@ async def all_commands(interaction: discord.Interaction):
     points="Нэмэх оноо (эсвэл хасах, default: 1)"
 )
 async def add_score(interaction: discord.Interaction, mentions: str, points: int = 1):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return    
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
@@ -1506,7 +1651,13 @@ async def session_timeout_checker():
 
 @bot.tree.command(name="resync", description="Slash командуудыг дахин сервертэй sync хийнэ (зөвхөн админд)")
 async def resync(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
@@ -1525,7 +1676,13 @@ async def resync(interaction: discord.Interaction):
 
 @bot.tree.command(name="backup_now", description="Датаг GitHub руу гараар хадгална (зөвхөн админд).")
 async def backup_now(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # ✨ 1. баталгаажуулж interaction-г хадгална
+
+    try:
+        await interaction.response.defer(ephemeral=False)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction expired.")
+        return
+        
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
