@@ -1511,6 +1511,17 @@ async def backup_now(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Backup хийхэд алдаа гарлаа: {e}", ephemeral=True)
 
+@bot.tree.command(name="whois", description="Mention хийсэн хэрэглэгчийн нэрийг харуулна")
+@app_commands.describe(mention="Хэрэглэгчийн mention (@name) хэлбэрээр")
+async def whois(interaction: discord.Interaction, mention: str):
+    try:
+        uid = int(mention.strip("<@!>"))
+        member = await interaction.guild.fetch_member(uid)
+        await interaction.response.send_message(f"🕵️‍♂️ Энэ ID: `{uid}` → {member.mention} / Нэр: `{member.display_name}`")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Олдсонгүй: {e}")
+
+
 # ✅ Бот асахад ажиллах үйлдлүүд
 @bot.event
 async def on_ready():
