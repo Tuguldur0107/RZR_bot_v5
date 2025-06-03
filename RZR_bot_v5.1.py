@@ -8,18 +8,19 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 import base64
 import requests
+BASE_DIR = "/mnt/data"
 
 start = datetime.now(timezone.utc)
 end = start + timedelta(hours=5)
 
 elapsed = end - start  # ⏱ timedelta object
 
-SCORE_FILE = "scores.json"
-LOG_FILE = "match_log.json"
-LAST_FILE = "last_match.json"
-SHIELD_FILE = "donate_shields.json"
-DONATOR_FILE = "donator.json"
-SCORE_LOG_FILE = "score_log.jsonl"
+SCORE_FILE = f"{BASE_DIR}/scores.json"
+LOG_FILE = f"{BASE_DIR}/match_log.json"
+LAST_FILE = f"{BASE_DIR}/last_match.json"
+SHIELD_FILE = f"{BASE_DIR}/donate_shields.json"
+DONATOR_FILE = f"{BASE_DIR}/donator.json"
+SCORE_LOG_FILE = f"{BASE_DIR}/score_log.jsonl"
 
 # 🧠 Тоглоомын Session-н төлөв
 GAME_SESSION = {
@@ -154,6 +155,16 @@ def commit_to_github(filename, message="update"):
         print(f"✅ {filename} GitHub-д хадгалагдлаа.")
     else:
         print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
+
+async def github_auto_commit():
+    while True:
+        await asyncio.sleep(3600)  # 60 минут
+        commit_to_github(SCORE_FILE, "auto: scores.json")
+        commit_to_github(SCORE_LOG_FILE, "auto: score_log.jsonl")
+        commit_to_github(LOG_FILE, "auto: match_log.json")
+        commit_to_github(DONATOR_FILE, "auto: donator.json")
+        commit_to_github(SHIELD_FILE, "auto: donate_shields.json")
+
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -1480,6 +1491,21 @@ async def resync(interaction: discord.Interaction):
 
     await interaction.followup.send(f"✅ Командууд `{guild.name}` сервер дээр дахин sync хийгдлээ.")
 
+@bot.tree.command(name="backup_now", description="Датаг GitHub руу гараар хадгална (зөвхөн админд).")
+async def backup_now(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
+        return
+
+    commit_to_github(SCORE_FILE, "manual backup: scores.json")
+    commit_to_github(SCORE_LOG_FILE, "manual backup: score_log.jsonl")
+    commit_to_github(LOG_FILE, "manual backup: match_log.json")
+    commit_to_github(DONATOR_FILE, "manual backup: donator.json")
+    commit_to_github(SHIELD_FILE, "manual backup: donate_shields.json")
+
+    await interaction.response.send_message("✅ Датаг GitHub руу амжилттай хадгаллаа.")
+
+
 @bot.event
 async def on_ready():
     print(f"🤖 Bot logged in as {bot.user}")
@@ -1491,6 +1517,7 @@ async def on_ready():
         print(f"✅ Synced commands for guild: {guild.name} ({guild.id})")
 
     asyncio.create_task(session_timeout_checker())
+    asyncio.create_task(github_auto_commit())  # auto commit асаана
 
 @bot.event
 async def on_message(message):
