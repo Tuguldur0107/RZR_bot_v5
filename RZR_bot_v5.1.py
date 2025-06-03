@@ -197,7 +197,7 @@ async def update_all_nicknames(guild):
 
 @bot.tree.command(name="ping", description="Ping test")
 async def ping(interaction: discord.Interaction):
-    await interaction.followup.send("🏓 Pong!")
+    await interaction.response.send_message("🏓 Pong!")
 
 async def update_nicknames_for_users(guild, user_ids: list):
     scores = load_scores()
@@ -1530,19 +1530,19 @@ async def should_deduct(uid_str: str, shields: dict) -> bool:
 
 @bot.tree.command(name="all_commands", description="Ботод бүртгэлтэй бүх / командуудыг харуулна")
 async def all_commands(interaction: discord.Interaction):
-
-    try:
-        await interaction.response.defer(ephemeral=False)
-    except discord.errors.InteractionResponded:
-        print("❌ Interaction expired.")
-        return
-        
     # ✅ Админ эрх шалгана
     if not interaction.user.guild_permissions.administrator:
-        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
+            ephemeral=True
+        )
         return
 
-    await interaction.response.defer(thinking=True)  # 🧠 Discord-д 'Bot is thinking...' илгээнэ
+    try:
+        await interaction.response.defer(thinking=True)
+    except discord.errors.InteractionResponded:
+        print("❌ Interaction-д аль хэдийн хариулсан байна.")
+        return
 
     commands = await bot.tree.fetch_commands(guild=interaction.guild)
 
