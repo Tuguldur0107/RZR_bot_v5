@@ -123,7 +123,7 @@ def demote_tier(current_tier):
     return TIER_ORDER[min(len(TIER_ORDER) - 1, idx + 1)]  # буурах
 
 
-def get_tier(score):
+def get_tier():
     return "4-1"  # default tier
 
 def commit_to_github(filename, message="update"):
@@ -266,7 +266,7 @@ async def undo_last_match(interaction: discord.Interaction):
             if score < 0:
                 score = 0
 
-            tier = data.get("tier", 4-1)
+            tier = data.get("tier", get_tier())
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
@@ -288,7 +288,7 @@ async def undo_last_match(interaction: discord.Interaction):
             if score > 5:
                 score = 5
 
-            tier = data.get("tier", 4-1)
+            tier = data.get("tier", get_tier())
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
@@ -368,7 +368,7 @@ async def my_score(interaction: discord.Interaction):
 
     if isinstance(data, dict):
         score = data.get("score", 0)
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
         updated = data.get("updated_at")
 
         msg = f"📿 {interaction.user.mention} таны оноо: {score}\n🎖 Түвшин: **{tier}**"
@@ -468,7 +468,7 @@ async def user_tier(interaction: discord.Interaction, member: discord.Member):
     data = scores.get(user_id)
 
     if isinstance(data, dict):
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
         await interaction.followup.send(
             f"🎖 {member.mention} хэрэглэгчийн түвшин: **{tier}**"
         )
@@ -579,7 +579,7 @@ async def make_team_go(interaction: discord.Interaction):
         if not member:
             continue
         data = scores.get(str(uid), {"tier": "4-1", "score": 0})
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
         score = data.get("score", 0)
         base = tier_score.get(tier, 5)
         real_score = base + score
@@ -696,7 +696,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) + 1
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
 
         while score >= 5:
             tier = promote_tier(tier)
@@ -719,7 +719,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0)
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
 
         if await should_deduct(uid_str, shields):
             score -= 1
@@ -979,7 +979,7 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
 
     if isinstance(data, dict):
         score = data.get("score", 0)
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
         await interaction.followup.send(
             f"👤 {member.mention} хэрэглэгчийн оноо: {score}\n🎖 Түвшин: **{tier}**"
         )
@@ -1033,7 +1033,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) + 2
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
 
         while score >= 5:
             tier = promote_tier(tier)
@@ -1053,7 +1053,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
         score = data.get("score", 0) - 2
-        tier = data.get("tier", 4-1)
+        tier = data.get("tier", get_tier())
 
         while score <= -5:
             tier = demote_tier(tier)
@@ -1434,7 +1434,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
 
         data = scores.get(uid_str, {})
         old_score = data.get("score", 0)
-        old_tier = data.get("tier", 4-1)
+        old_tier = data.get("tier", get_tier())
         score = old_score + points
         tier = old_tier
 
