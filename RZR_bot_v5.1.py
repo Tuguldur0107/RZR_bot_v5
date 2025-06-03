@@ -233,7 +233,7 @@ async def undo_last_match(interaction: discord.Interaction):
         with open(LAST_FILE, "r") as f:
             last = json.load(f)
     except FileNotFoundError:
-        await interaction.response.send_message("⚠️ Сүүлд бүртгэсэн match олдсонгүй.")
+        await interaction.followup.send("⚠️ Сүүлд бүртгэсэн match олдсонгүй.")
         return
 
     scores = load_scores()
@@ -287,7 +287,7 @@ async def undo_last_match(interaction: discord.Interaction):
     save_scores(scores)
     await update_nicknames_for_users(interaction.guild, changed_ids)
     commit_to_github(LAST_FILE, "update last_match.json")
-    await interaction.response.send_message("↩️ Сүүлийн match-ийн оноо буцаагдлаа.")
+    await interaction.followup.send("↩️ Сүүлийн match-ийн оноо буцаагдлаа.")
 
 @bot.tree.command(name="match_history", description="Сүүлийн тоглолтуудын жагсаалтыг харуулна")
 async def match_history(interaction: discord.Interaction):
@@ -302,11 +302,11 @@ async def match_history(interaction: discord.Interaction):
         with open(LOG_FILE, "r") as f:
             log = json.load(f)
     except FileNotFoundError:
-        await interaction.response.send_message("📭 Match log хоосон байна.")
+        await interaction.followup.send("📭 Match log хоосон байна.")
         return
 
     if not log:
-        await interaction.response.send_message("📭 Match log хоосон байна.")
+        await interaction.followup.send("📭 Match log хоосон байна.")
         return
 
     # 🕓 Timestamp-оор эрэмбэлээд сүүлийн 5-г авна
@@ -335,7 +335,7 @@ async def match_history(interaction: discord.Interaction):
         for ch in changed:
             msg += f"🔁 <@{ch['from']}> → <@{ch['to']}>\n"
 
-    await interaction.response.send_message(msg)
+    await interaction.followup.send(msg)
 
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
@@ -383,7 +383,7 @@ async def scoreboard(interaction: discord.Interaction):
     
     # ✅ Админ эрх шалгах
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
     await interaction.response.defer(thinking=True)
@@ -459,7 +459,7 @@ async def reset_scores(interaction: discord.Interaction):
     
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
@@ -476,7 +476,7 @@ async def reset_scores(interaction: discord.Interaction):
             scores[user_id] = {"score": 0, "tier": "4-1"}
 
     save_scores(scores)
-    await interaction.response.send_message(
+    await interaction.followup.send(
         "♻️ Бүх оноо амжилттай 0 боллоо (tier өөрчлөхгүй)."
     )
 
@@ -494,7 +494,7 @@ async def reset_tier(interaction: discord.Interaction):
     
      # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
@@ -528,11 +528,11 @@ async def user_tier(interaction: discord.Interaction, member: discord.Member):
 
     if isinstance(data, dict):
         tier = data.get("tier", "4-1")
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🎖 {member.mention} хэрэглэгчийн түвшин: **{tier}**"
         )
     else:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"⚠️ {member.mention} хэрэглэгчид оноо/төвшин бүртгэгдээгүй байна."
         )
 TEAM_SETUP = {
@@ -564,7 +564,7 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     TEAM_SETUP["teams"] = []
     TEAM_SETUP["changed_players"] = []
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"🎯 Багийн тохиргоо эхэллээ! Нийт {team_count} баг, нэг багт {players_per_team} хүн байна. "
         f"Тоглогчид /addme гэж бүртгүүлнэ үү.\n"
         f"⏳ **5 минутын дараа автоматаар баг хуваарилна.**")
@@ -592,23 +592,23 @@ async def addme(interaction: discord.Interaction):
         return
     
     if TEAM_SETUP["initiator_id"] is None:
-        await interaction.response.send_message("⚠️ /make_team командаар эхлүүлсний дараа /addme ашиглана уу.")
+        await interaction.followup.send("⚠️ /make_team командаар эхлүүлсний дараа /addme ашиглана уу.")
         return
 
     if GAME_SESSION["active"]:
-        await interaction.response.send_message("⚠️ Session аль хэдийн эхэлсэн байна, дахин бүртгүүлэх боломжгүй.", ephemeral=True)
+        await interaction.followup.send("⚠️ Session аль хэдийн эхэлсэн байна, дахин бүртгүүлэх боломжгүй.", ephemeral=True)
         return
 
     user_id = interaction.user.id
     if user_id not in TEAM_SETUP["player_ids"]:
         TEAM_SETUP["player_ids"].append(user_id)
         all_players = ", ".join([f"<@{uid}>" for uid in TEAM_SETUP["player_ids"]])
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"✅ {interaction.user.mention} амжилттай бүртгэгдлээ!\n"
             f"📋 Бүртгэгдсэн тоглогчид: {all_players}"
         )
     else:
-        await interaction.response.send_message("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
+        await interaction.followup.send("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
 
 
 
@@ -622,7 +622,7 @@ async def make_team_go(interaction: discord.Interaction):
         return
      
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
-        await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
+        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
         return
 
     await interaction.response.defer(thinking=True)
@@ -743,21 +743,21 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         return
         
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
-        await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулна.", ephemeral=True)
+        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулна.", ephemeral=True)
         return
 
     if not GAME_SESSION["active"]:
-        await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүл.", ephemeral=True)
+        await interaction.followup.send("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүл.", ephemeral=True)
         return
 
     team_count = TEAM_SETUP["team_count"]
     team_size = TEAM_SETUP["players_per_team"]
 
     if not (1 <= winning_team <= team_count) or not (1 <= losing_team <= team_count):
-        await interaction.response.send_message("❌ Багийн дугаар буруу байна.")
+        await interaction.followup.send("❌ Багийн дугаар буруу байна.")
         return
     if winning_team == losing_team:
-        await interaction.response.send_message("⚠️ Хожсон ба хожигдсон баг адил байна.")
+        await interaction.followup.send("⚠️ Хожсон ба хожигдсон баг адил байна.")
         return
 
     await interaction.response.defer(thinking=True)
@@ -880,7 +880,7 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
         
     # Зөвхөн эхлүүлэгч ажиллуулах эрхтэй эсэх шалгах
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
-        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ажиллуулж чадна.", ephemeral=True)
         return
 
     user_ids = TEAM_SETUP["player_ids"]
@@ -888,11 +888,11 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
     team_count = TEAM_SETUP["team_count"]
 
     if from_member.id not in user_ids:
-        await interaction.response.send_message(f"⚠️ {from_member.mention} багт бүртгэгдээгүй байна.")
+        await interaction.followup.send(f"⚠️ {from_member.mention} багт бүртгэгдээгүй байна.")
         return
 
     if to_member.id in user_ids:
-        await interaction.response.send_message(f"⚠️ {to_member.mention} аль хэдийн өөр багт бүртгэгдсэн байна.")
+        await interaction.followup.send(f"⚠️ {to_member.mention} аль хэдийн өөр багт бүртгэгдсэн байна.")
         return
 
     idx = user_ids.index(from_member.id)
@@ -921,7 +921,7 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
 
     old_team = (idx // players_per_team) + 1  # Багийн дугаар (1-с эхэлнэ)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"🔁 {from_member.mention} → {to_member.mention} солигдлоо!\n"
         f"📌 {from_member.mention} нь Team {old_team}-д байсан."
     )
@@ -954,14 +954,14 @@ async def donate_shield(interaction: discord.Interaction, member: discord.Member
         
     # ✅ Зөвхөн админ хэрэглэгч шалгах
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
         return
 
     if count <= 0:
-        await interaction.response.send_message("⚠️ Хамгаалалтын тоо 1-с дээш байх ёстой.")
+        await interaction.followup.send("⚠️ Хамгаалалтын тоо 1-с дээш байх ёстой.")
         return
 
     shields = load_shields()
@@ -969,7 +969,7 @@ async def donate_shield(interaction: discord.Interaction, member: discord.Member
     shields[uid] = shields.get(uid, 0) + count
     save_shields(shields)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"🛡️ {member.mention} хэрэглэгчид {count} удаагийн хамгаалалт амжилттай өглөө!"
     )
 
@@ -984,7 +984,7 @@ async def init_scores(interaction: discord.Interaction):
         return    
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
@@ -1034,11 +1034,11 @@ async def set_tier(interaction: discord.Interaction, member: discord.Member, new
         
     # ✅ зөвхөн админ эрхтэй хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
     if new_tier not in TIER_ORDER:
-        await interaction.response.send_message(f"❌ Tier: `{new_tier}` олдсонгүй. Зөвхөн дараах байдлаар байна:\n{', '.join(TIER_ORDER)}", ephemeral=True)
+        await interaction.followup.send(f"❌ Tier: `{new_tier}` олдсонгүй. Зөвхөн дараах байдлаар байна:\n{', '.join(TIER_ORDER)}", ephemeral=True)
         return
 
     user_id = str(member.id)
@@ -1059,13 +1059,13 @@ async def set_tier(interaction: discord.Interaction, member: discord.Member, new
         new_nick = f"{new_tier} | {base_nick}"
         await member.edit(nick=new_nick)
     except discord.Forbidden:
-        await interaction.response.send_message("⚠️ Tier амжилттай солигдсон ч nickname өөрчилж чадсангүй (permission issue).", ephemeral=True)
+        await interaction.followup.send("⚠️ Tier амжилттай солигдсон ч nickname өөрчилж чадсангүй (permission issue).", ephemeral=True)
         return
     except Exception as e:
-        await interaction.response.send_message(f"⚠️ Алдаа гарлаа: {e}", ephemeral=True)
+        await interaction.followup.send(f"⚠️ Алдаа гарлаа: {e}", ephemeral=True)
         return
 
-    await interaction.response.send_message(f"✅ {member.mention}-ийн tier-г `{new_tier}` болголоо.")
+    await interaction.followup.send(f"✅ {member.mention}-ийн tier-г `{new_tier}` болголоо.")
 
 
 @bot.tree.command(name="delete_tier",
@@ -1080,7 +1080,7 @@ async def delete_tier(interaction: discord.Interaction):
         
     # ✅ зөвхөн админ хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
@@ -1133,9 +1133,9 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
     try:
         await interaction.response.defer(ephemeral=False)
     except discord.errors.InteractionResponded:
-        print("❌ Interaction expired.")
+        print("❌ Interaction already responded.")
         return
-        
+
     scores = load_scores()
     user_id = str(member.id)
     data = scores.get(user_id)
@@ -1143,13 +1143,14 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
     if isinstance(data, dict):
         score = data.get("score", 0)
         tier = data.get("tier", "4-1")
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"👤 {member.mention} хэрэглэгчийн оноо: {score}\n🎖 Түвшин: **{tier}**"
         )
     else:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"👤 {member.mention} хэрэглэгчид оноо бүртгэгдээгүй байна."
         )
+
 
 @bot.tree.command(name="set_winner_team_fountain", description="Fountain дээр хожсон ба хожигдсон багуудад оноо өгнө")
 @app_commands.describe(
@@ -1165,15 +1166,15 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         return
         
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
-        await interaction.response.send_message("❌ Зөвхөн тохиргоо эхлүүлсэн хүн ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Зөвхөн тохиргоо эхлүүлсэн хүн ажиллуулж чадна.", ephemeral=True)
         return
 
     if not GAME_SESSION["active"]:
-        await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүл.", ephemeral=True)
+        await interaction.followup.send("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүл.", ephemeral=True)
         return
 
     if winning_team < 1 or winning_team > TEAM_SETUP["team_count"] or losing_team < 1 or losing_team > TEAM_SETUP["team_count"]:
-        await interaction.response.send_message("❌ Багийн дугаар буруу байна.")
+        await interaction.followup.send("❌ Багийн дугаар буруу байна.")
         return
 
     await interaction.response.defer(thinking=True)
@@ -1284,7 +1285,7 @@ async def active_teams(interaction: discord.Interaction):
         return
         
     if not GAME_SESSION["active"] or "teams" not in TEAM_SETUP:
-        await interaction.response.send_message("⚠️ Session идэвхгүй байна.")
+        await interaction.followup.send("⚠️ Session идэвхгүй байна.")
         return
 
     guild = interaction.guild
@@ -1297,7 +1298,7 @@ async def active_teams(interaction: discord.Interaction):
             mentions.append(member.mention if member else f"<@{uid}>")
         msg += f"\n🥇 **Team {i}:**\n• " + ", ".join(mentions) + "\n"
 
-    await interaction.response.send_message(msg)
+    await interaction.followup.send(msg)
 
 
 @bot.tree.command(name="set_team", description="Админ: тоглогчдыг багт бүртгэнэ")
@@ -1314,7 +1315,7 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
         return
         
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        await interaction.followup.send("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
         return
 
     user_ids = [
@@ -1323,7 +1324,7 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
     ]
 
     if not user_ids:
-        await interaction.response.send_message("⚠️ Хамгийн багадаа нэг тоглогч mention хийнэ үү.", ephemeral=True)
+        await interaction.followup.send("⚠️ Хамгийн багадаа нэг тоглогч mention хийнэ үү.", ephemeral=True)
         return
 
     # Session эхлүүлнэ
@@ -1339,7 +1340,7 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
     already_in = [uid for uid in user_ids if uid in TEAM_SETUP["player_ids"]]
     if already_in:
         duplicates = ", ".join(f"<@{uid}>" for uid in already_in)
-        await interaction.response.send_message(f"⚠️ Дараах гишүүд аль хэдийн бүртгэгдсэн байна: {duplicates}", ephemeral=True)
+        await interaction.followup.send(f"⚠️ Дараах гишүүд аль хэдийн бүртгэгдсэн байна: {duplicates}", ephemeral=True)
         return
 
     TEAM_SETUP["team_count"] = max(TEAM_SETUP["team_count"], team_number)
@@ -1373,7 +1374,7 @@ async def set_team(interaction: discord.Interaction, team_number: int, mentions:
 
 
     mentions_str = ", ".join([f"<@{uid}>" for uid in user_ids])
-    await interaction.response.send_message(f"✅ **Team {team_number}** бүртгэгдлээ:\n• {mentions_str}")
+    await interaction.followup.send(f"✅ **Team {team_number}** бүртгэгдлээ:\n• {mentions_str}")
 
 
 @bot.tree.command(name="add_team", description="Шинэ багийг тоглож буй session-д нэмнэ")
@@ -1390,11 +1391,11 @@ async def add_team(interaction: discord.Interaction, mentions: str):
         
     # Зөвхөн session эхлүүлэгч ашиглах эрхтэй эсэхийг шалгах
     if interaction.user.id != TEAM_SETUP.get("initiator_id"):
-        await interaction.response.send_message("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ашиглах эрхтэй.", ephemeral=True)
+        await interaction.followup.send("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн энэ командыг ашиглах эрхтэй.", ephemeral=True)
         return
 
     if not GAME_SESSION["active"]:
-        await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүлнэ үү.")
+        await interaction.followup.send("⚠️ Session идэвхгүй байна. /make_team_go-оор эхлүүлнэ үү.")
         return
 
     await interaction.response.defer(thinking=True)
@@ -1437,7 +1438,7 @@ async def add_donator(interaction: discord.Interaction, member: discord.Member, 
         return
         
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
     donors = load_donators()
@@ -1480,10 +1481,10 @@ async def add_donator(interaction: discord.Interaction, member: discord.Member, 
     try:
         await member.edit(nick=new_nick)
     except discord.Forbidden:
-        await interaction.response.send_message("⚠️ Donator болгосон ч nickname өөрчилж чадсангүй (permission issue).", ephemeral=True)
+        await interaction.followup.send("⚠️ Donator болгосон ч nickname өөрчилж чадсангүй (permission issue).", ephemeral=True)
         return
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"{emoji} {member.mention} хэрэглэгчийг Donator болголоо! (нийт {total_mnt:,}₮)"
     )
 
@@ -1497,12 +1498,12 @@ async def donator_list(interaction: discord.Interaction):
         return
         
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ашиглаж болно.", ephemeral=True)
+        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ашиглаж болно.", ephemeral=True)
         return
 
     donors = load_donators()
     if not donors:
-        await interaction.response.send_message("📭 Donator бүртгэл алга байна.")
+        await interaction.followup.send("📭 Donator бүртгэл алга байна.")
         return
 
     msg = "💖 **Donators:**\n"
@@ -1520,7 +1521,7 @@ async def donator_list(interaction: discord.Interaction):
             
             msg += f"{emoji} {member.display_name} — {total:,}₮\n"
 
-    await interaction.response.send_message(msg)
+    await interaction.followup.send(msg)
 
 async def should_deduct(uid_str: str, shields: dict) -> bool:
     if shields.get(uid_str, 0) > 0:
@@ -1542,7 +1543,7 @@ async def all_commands(interaction: discord.Interaction):
         
     # ✅ Админ эрх шалгана
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
+        await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
     await interaction.response.defer(thinking=True)  # 🧠 Discord-д 'Bot is thinking...' илгээнэ
@@ -1573,7 +1574,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         print("❌ Interaction expired.")
         return    
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
             ephemeral=True
         )
@@ -1659,12 +1660,12 @@ async def resync(interaction: discord.Interaction):
         return
         
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
+        await interaction.followup.send("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
 
     guild = interaction.guild
     if not guild:
-        await interaction.response.send_message("⚠️ Энэ командыг зөвхөн сервер дээр ажиллуулна уу.", ephemeral=True)
+        await interaction.followup.send("⚠️ Энэ командыг зөвхөн сервер дээр ажиллуулна уу.", ephemeral=True)
         return
 
     await interaction.response.defer(thinking=True)  # ← Discord-д "bot is thinking..." илгээнэ
@@ -1684,7 +1685,7 @@ async def backup_now(interaction: discord.Interaction):
         return
         
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
+        await interaction.followup.send("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
 
     commit_to_github(SCORE_FILE, "manual backup: scores.json")
@@ -1693,7 +1694,7 @@ async def backup_now(interaction: discord.Interaction):
     commit_to_github(DONATOR_FILE, "manual backup: donator.json")
     commit_to_github(SHIELD_FILE, "manual backup: donate_shields.json")
 
-    await interaction.response.send_message("✅ Датаг GitHub руу амжилттай хадгаллаа.")
+    await interaction.followup.send("✅ Датаг GitHub руу амжилттай хадгаллаа.")
 
 
 @bot.event
