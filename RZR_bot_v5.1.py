@@ -6,6 +6,8 @@ import os
 import random
 import asyncio
 from datetime import datetime, timezone, timedelta
+import base64
+import requests
 
 start = datetime.now(timezone.utc)
 end = start + timedelta(hours=5)
@@ -38,6 +40,7 @@ def load_donators():
 def save_donators(data):
     with open(DONATOR_FILE, "w") as f:
         json.dump(data, f, indent=4)
+    commit_to_github(DONATOR_FILE, "update donator.json")
 
 def get_donator_emoji(data):
     from datetime import datetime, timezone, timedelta
@@ -75,6 +78,7 @@ def load_shields():
 def save_shields(data):
     with open(SHIELD_FILE, "w") as f:
         json.dump(data, f, indent=4)
+    commit_to_github(SHIELD_FILE, "update donate_shields.json")
 
 def load_scores():
     if not os.path.exists(SCORE_FILE):
@@ -87,6 +91,7 @@ def save_scores(data):
         with open(SCORE_FILE, "w") as f:
             json.dump(data, f, indent=4)
         print("✅ scores.json амжилттай хадгалагдлаа.")
+        commit_to_github(SCORE_FILE, "update scores.json")
     except Exception as e:
         print("❌ scores.json хадгалах үед алдаа:", e)
 
@@ -99,9 +104,10 @@ def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: s
         "tier": tier,
         "reason": reason
     }
-    print(f"[score_log] {entry}")  # ← энэ мөр нэм
+    print(f"[score_log] {entry}")
     with open(SCORE_LOG_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
+    commit_to_github(SCORE_LOG_FILE, "append score_log.jsonl")
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
@@ -122,6 +128,32 @@ def demote_tier(current_tier):
 def get_tier(score):
     return "4-1"  # default tier
 
+def commit_to_github(filename, message="update"):
+    token = os.environ.get("GITHUB_TOKEN")
+    repo = "Tuguldur0107/RZR_bot_v5"
+    branch = "main"
+
+    with open(filename, "rb") as f:
+        content = base64.b64encode(f.read()).decode("utf-8")
+
+    api_url = f"https://api.github.com/repos/{repo}/contents/{filename}"
+    
+    # Commit хийхийн тулд эхлээд sha авах
+    res = requests.get(api_url, headers={"Authorization": f"token {token}"})
+    sha = res.json().get("sha")
+
+    data = {
+        "message": message,
+        "branch": branch,
+        "content": content,
+        "sha": sha
+    }
+
+    r = requests.put(api_url, headers={"Authorization": f"token {token}"}, json=data)
+    if r.status_code == 200 or r.status_code == 201:
+        print(f"✅ {filename} GitHub-д хадгалагдлаа.")
+    else:
+        print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -235,6 +267,7 @@ async def undo_last_match(interaction: discord.Interaction):
 
     save_scores(scores)
     await update_nicknames_for_users(interaction.guild, changed_ids)
+    commit_to_github(LAST_FILE, "update last_match.json")
     await interaction.response.send_message("↩️ Сүүлийн match-ийн оноо буцаагдлаа.")
 
 @bot.tree.command(name="match_history", description="Сүүлийн тоглолтуудын жагсаалтыг харуулна")
@@ -725,6 +758,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+    commit_to_github(LOG_FILE, "update match_log.json")
 
     last_entry = {
         "timestamp": log_entry["timestamp"],
@@ -734,6 +768,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     }
     with open(LAST_FILE, "w") as f:
         json.dump(last_entry, f, indent=2)
+    commit_to_github(LAST_FILE, "update last_match.json")
 
     await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
@@ -1082,6 +1117,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     log.append(log_entry)
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
+    commit_to_github(LOG_FILE, "update match_log.json")
 
     last_entry = {
         "timestamp": log_entry["timestamp"],
