@@ -327,7 +327,7 @@ async def match_history(interaction: discord.Interaction):
 
 @bot.tree.command(name="my_score", description="Таны оноог шалгах")
 async def my_score(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=False)  # 🔥 Discord interaction-г 3 секундээс өмнө баталгаажуулна
+    await interaction.response.defer(ephemeral=False)  # Interaction-г баталгаажуулж байна
 
     scores = load_scores()
     user_id = str(interaction.user.id)
@@ -347,10 +347,11 @@ async def my_score(interaction: discord.Interaction):
             except:
                 msg += f"\n🕓 Сүүлд шинэчлэгдсэн: `{updated}`"
 
-        await interaction.response.send_message(msg)
+        await interaction.followup.send(content=msg)  # ❗ response биш, FOLLOWUP
     else:
-        await interaction.response.send_message(
-            f"📿 {interaction.user.mention} танд оноо бүртгэгдээгүй байна.\n🎖 Түвшин: **Tier-гүй байна**")
+        await interaction.followup.send(
+            content=f"📿 {interaction.user.mention} танд оноо бүртгэгдээгүй байна.\n🎖 Түвшин: **Tier-гүй байна**"
+        )
 
 @bot.tree.command(name="scoreboard", description="Бүх тоглогчдын онооны жагсаалт")
 async def scoreboard(interaction: discord.Interaction):
