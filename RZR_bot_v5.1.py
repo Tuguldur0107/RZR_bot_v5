@@ -197,14 +197,17 @@ async def undo_last_match(interaction: discord.Interaction):
         if data:
             score = data.get("score", 0) - 1
             if score < 0:
-                score = 0  # оноо хассан ч 0-оос доош буухгүй
+                score = 0
+
+            tier = data.get("tier", "4-1")
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
                 "score": score,
-                "tier": data.get("tier", "4-1"),
+                "tier": tier,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
+
             log_score_transaction(uid_str, -1, score, tier, "undo win")
             changed_ids.append(int(uid))
 
@@ -216,20 +219,22 @@ async def undo_last_match(interaction: discord.Interaction):
         if data:
             score = data.get("score", 0) + 1
             if score > 5:
-                score = 5  # хожигдсон баг оноо авсан гэж үзэж байгаа бол max cap
+                score = 5
+
+            tier = data.get("tier", "4-1")
 
             scores[uid_str] = {
                 "username": data.get("username") or (member.name if member else "unknown"),
                 "score": score,
-                "tier": data.get("tier", "4-1"),
+                "tier": tier,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
+
             log_score_transaction(uid_str, +1, score, tier, "undo loss")
             changed_ids.append(int(uid))
 
     save_scores(scores)
     await update_nicknames_for_users(interaction.guild, changed_ids)
-
     await interaction.response.send_message("↩️ Сүүлийн match-ийн оноо буцаагдлаа.")
 
 @bot.tree.command(name="match_history", description="Сүүлийн тоглолтуудын жагсаалтыг харуулна")
@@ -667,7 +672,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         }
         log_score_transaction(uid_str, +1, score, tier, "win")
 
-
         changed_ids.append(uid)
         if member:
             winners.append(member.mention)
@@ -730,9 +734,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     }
     with open(LAST_FILE, "w") as f:
         json.dump(last_entry, f, indent=2)
-
-
-
 
     await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
@@ -1014,7 +1015,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
     winning_ids = get_team_user_ids(winning_team)
     losing_ids = get_team_user_ids(losing_team)
-
     changed_ids = []
 
     for uid in winning_ids:
@@ -1035,7 +1035,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         log_score_transaction(uid_str, +2, score, tier, "fountain win")
-
         changed_ids.append(uid)
 
     for uid in losing_ids:
@@ -1056,7 +1055,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         log_score_transaction(uid_str, -2, score, tier, "fountain loss")
-
         changed_ids.append(uid)
 
     save_scores(scores)
@@ -1370,17 +1368,17 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
     updated = []
     failed = []
 
-    for uid in user_ids:
+    for uid_str in user_ids:
         try:
-            member = await interaction.guild.fetch_member(int(uid))
+            member = await interaction.guild.fetch_member(int(uid_str))
         except Exception as e:
-            print(f"❌ {uid} fetch алдаа: {e}")
-            failed.append(uid)
+            print(f"❌ {uid_str} fetch алдаа: {e}")
+            failed.append(uid_str)
             continue
 
-        old_score = scores.get(uid, {}).get("score", 0)
-        old_tier = scores.get(uid, {}).get("tier", "4-1")
-
+        data = scores.get(uid_str, {})
+        old_score = data.get("score", 0)
+        old_tier = data.get("tier", "4-1")
         score = old_score + points
         tier = old_tier
 
@@ -1391,14 +1389,14 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
             tier = demote_tier(tier)
             score += 5
 
-        scores[uid] = {
+        scores[uid_str] = {
             "username": member.name,
             "score": score,
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
-        log_score_transaction(uid, points, score, tier, "manual")
 
+        log_score_transaction(uid_str, points, score, tier, "manual")
         print(f"[add_score] {member.name} оноо: {score}, tier: {tier}")
         updated.append(member)
 
@@ -1412,6 +1410,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         msg += f"\n⚠️ Дараах ID-г хөрвүүлж чадсангүй: {', '.join(failed)}"
 
     await interaction.followup.send(msg)
+
 
 # ⏱️ Session хугацаа дууссан эсэх шалгагч task
 async def session_timeout_checker():
