@@ -374,23 +374,20 @@ async def my_score(interaction: discord.Interaction):
 
 @bot.tree.command(name="scoreboard", description="Бүх тоглогчдын онооны жагсаалт")
 async def scoreboard(interaction: discord.Interaction):
-
     try:
         await interaction.response.defer(ephemeral=False)
     except discord.errors.InteractionResponded:
-        print("❌ Interaction expired.")
+        print("❌ Interaction already responded.")
         return
-    
+
     # ✅ Админ эрх шалгах
     if not interaction.user.guild_permissions.administrator:
         await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
-    await interaction.response.defer(thinking=True)
-
     scores = load_scores()
 
-    # 🕓 Сүүлд шинэчлэгдсэн огноо олох
+    # 🕓 Сүүлд шинэчлэгдсэн огноо
     latest_update = None
     for data in scores.values():
         if isinstance(data, dict) and "updated_at" in data:
@@ -416,14 +413,13 @@ async def scoreboard(interaction: discord.Interaction):
             tier = data.get("tier", "3-3")
 
             updated = data.get("updated_at")
+            update_str = ""
             if updated:
                 try:
                     ts = datetime.fromisoformat(updated).strftime("%Y-%m-%d %H:%M")
                     update_str = f" (🕓 {ts})"
                 except:
-                    update_str = ""
-            else:
-                update_str = ""
+                    pass
 
             lines.append(f"Оноо: {score}, Түвшин: {tier} — {member.display_name}{update_str}")
 
