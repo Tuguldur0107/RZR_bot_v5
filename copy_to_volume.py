@@ -2,6 +2,7 @@ import shutil
 import os
 
 def copy_files_to_volume():
+    print("🔥 JSON хуулалт эхэллээ")
     # Railway дотор GitHub repo-гийн root зам
     LOCAL_PATH = "/app"
     VOLUME_PATH = "/mnt/data"
