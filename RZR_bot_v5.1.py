@@ -230,11 +230,13 @@ async def match_history(interaction: discord.Interaction):
         await interaction.response.send_message("📭 Match log хоосон байна.")
         return
 
-    recent_matches = log[-5:]
+    # 🕓 Timestamp-оор эрэмбэлээд сүүлийн 5-г авна
+    log = sorted(log, key=lambda x: x.get("timestamp", ""), reverse=True)[:5]
+
     msg = "📜 **Сүүлийн Match-ууд:**\n"
 
-    for i, entry in enumerate(reversed(recent_matches), 1):
-        ts = entry.get("timestamp", "⏱️")
+    for i, entry in enumerate(log, 1):
+        ts = entry.get("timestamp", "⏱")
         dt = datetime.fromisoformat(ts).astimezone(timezone(timedelta(hours=8)))
         ts_str = dt.strftime("%Y-%m-%d %H:%M")
 
@@ -251,9 +253,8 @@ async def match_history(interaction: discord.Interaction):
             players = ", ".join(f"<@{uid}>" for uid in team)
             msg += f"{tag} Team {t_num}: {players}\n"
 
-        if changed:
-            for ch in changed:
-                msg += f"🔁 <@{ch['from']}> → <@{ch['to']}>\n"
+        for ch in changed:
+            msg += f"🔁 <@{ch['from']}> → <@{ch['to']}>\n"
 
     await interaction.response.send_message(msg)
 
