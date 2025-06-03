@@ -131,12 +131,14 @@ def commit_to_github(filename, message="update"):
     repo = "Tuguldur0107/RZR_bot_v5"
     branch = "main"
 
+    # ⛔️ GitHub дээр path /mnt/data/... биш, зөвхөн filename байх ёстой
+    github_path = os.path.basename(filename)
+
     with open(filename, "rb") as f:
         content = base64.b64encode(f.read()).decode("utf-8")
 
-    api_url = f"https://api.github.com/repos/{repo}/contents/{filename}"
-    
-    # Commit хийхийн тулд эхлээд sha авах
+    api_url = f"https://api.github.com/repos/{repo}/contents/{github_path}"
+
     res = requests.get(api_url, headers={"Authorization": f"token {token}"})
     sha = res.json().get("sha")
 
@@ -148,10 +150,11 @@ def commit_to_github(filename, message="update"):
     }
 
     r = requests.put(api_url, headers={"Authorization": f"token {token}"}, json=data)
-    if r.status_code == 200 or r.status_code == 201:
-        print(f"✅ {filename} GitHub-д хадгалагдлаа.")
+    if r.status_code in [200, 201]:
+        print(f"✅ {github_path} GitHub-д хадгалагдлаа.")
     else:
         print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
+
 
 def clean_nickname(nick: str) -> str:
     for prefix in TIER_ORDER:
