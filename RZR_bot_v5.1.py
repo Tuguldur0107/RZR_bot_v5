@@ -189,22 +189,31 @@ async def github_auto_commit():
 
 async def update_nicknames_for_users(guild, user_ids: list):
     scores = load_scores()
+    donors = load_donators()
+
     for user_id in user_ids:
         data = scores.get(str(user_id))
         if not data:
             continue
+
         member = guild.get_member(int(user_id))
         if member:
-            tier = data.get("tier", 4-1)
+            tier = data.get("tier", get_tier())
+            base_nick = clean_nickname(member.nick or member.name)
+
+            # 💖 Donator emoji оруулна
+            emoji = get_donator_emoji(donors.get(str(user_id), {}))
+            prefix = f"{emoji + ' ' if emoji else ''}{tier}"
+
+            new_nick = f"{prefix} | {base_nick}"
+
             try:
-                base_nick = member.nick or member.name
-                base_nick = clean_nickname(base_nick)
-                new_nick = f"{tier} | {base_nick}"
                 await member.edit(nick=new_nick)
             except discord.Forbidden:
                 print(f"⛔️ {member} nickname-г өөрчилж чадсангүй (permission issue).")
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
+
 
 # ⏱️ Session хугацаа дууссан эсэх шалгагч task
 async def session_timeout_checker():
@@ -1452,7 +1461,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
     success_mentions = ", ".join([m.mention for m in updated])
     fail_mentions = ", ".join([f"<@{uid}>" for uid in failed])
 
-    msg = f"✅ Оноо шинэчлэгдлээ: {success_mentions}" if updated else ""
+    msg = f"✅ Оноо `{points}`-оор шинэчлэгдлээ: {success_mentions}" if updated else ""
     if failed:
         msg += f"\n⚠️ Fetch хийхэд алдаа гарсан: {fail_mentions}"
 
