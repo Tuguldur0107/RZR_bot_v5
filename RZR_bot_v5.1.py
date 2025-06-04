@@ -30,6 +30,14 @@ GAME_SESSION = {
     "start_time": None,
     "last_win_time": None
 }
+TEAM_SETUP = {
+    "initiator_id": None,
+    "team_count": 0,
+    "players_per_team": 0,
+    "player_ids": [],
+    "teams": [],
+    "changed_players": []
+}
 
 def load_donators():
     if not os.path.exists(DONATOR_FILE):
@@ -478,6 +486,7 @@ async def user_tier(interaction: discord.Interaction, member: discord.Member):
 @bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
 @app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
 async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
+    global TEAM_SETUP  # 👉 ЭНЭ МӨРИЙГ нэм
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -493,6 +502,7 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
     TEAM_SETUP["player_ids"] = []
+    
     TEAM_SETUP["teams"] = []
     TEAM_SETUP["changed_players"] = []
 
