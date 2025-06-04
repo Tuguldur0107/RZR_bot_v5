@@ -649,7 +649,7 @@ async def make_team_go(interaction: discord.Interaction):
     try:
         with open("team_log.json", "r") as f:
             team_log = json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):  # ← JSONDecodeError-г нэм
         team_log = []
 
     team_log.append(team_log_entry)
