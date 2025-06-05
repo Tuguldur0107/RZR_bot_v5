@@ -582,59 +582,16 @@ async def make_team_go(interaction: discord.Interaction):
         if not member:
             continue
         data = scores.get(str(uid), {"tier": "4-1", "score": 0})
-        tier = data.get("tier", get_tier())
+        tier = data.get("tier", "4-1")
         score = data.get("score", 0)
         base = tier_score.get(tier, 5)
         real_score = base + score
-        player_info.append({
-            "member": member,
-            "tier": tier,
-            "score": score,
-            "real_score": real_score
-        })
+        player_info.append((real_score, member, tier, score))
 
-    player_info.sort(key=lambda x: -x["real_score"])
-
-    def calculate_diff(teams):
-        scores = [t["score"] for t in teams]
-        return max(scores) - min(scores)
-
-    def create_teams(player_info):
-        teams = [{"players": [], "score": 0} for _ in range(team_count)]
-        i, j = 0, len(player_info) - 1
-        while i <= j:
-            for t in teams:
-                if i <= j and len(t["players"]) < players_per_team:
-                    t["players"].append(player_info[i])
-                    t["score"] += player_info[i]["real_score"]
-                    i += 1
-                if i <= j and len(t["players"]) < players_per_team:
-                    t["players"].append(player_info[j])
-                    t["score"] += player_info[j]["real_score"]
-                    j -= 1
-        return teams
-
-    def optimize_teams(teams):
-        from random import shuffle
-        flat = [p for t in teams for p in t["players"]]
-        best = teams
-        min_diff = calculate_diff(teams)
-        for _ in range(300):
-            shuffle(flat)
-            new_teams = create_teams(flat.copy())
-            diff = calculate_diff(new_teams)
-            if diff < min_diff:
-                best = new_teams
-                min_diff = diff
-                if diff == 0:
-                    break
-        return best
-
-    teams = create_teams(player_info)
-    teams = optimize_teams(teams)
-
-    assigned_players = [p for t in teams for p in t["players"]]
-    unassigned_players = [p for p in player_info if p not in assigned_players]
+    player_info.sort(reverse=True)
+    teams = [[] for _ in range(team_count)]
+    for idx, (_, member, tier, score) in enumerate(player_info):
+        teams[idx % team_count].append((member, tier, score))
 
     emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]
     msg = f"**🧐 {len(player_info)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
@@ -642,20 +599,15 @@ async def make_team_go(interaction: discord.Interaction):
     team_ids = []
     for i, team in enumerate(teams, 1):
         emj = emojis[i - 1] if i - 1 < len(emojis) else "🌺"
-        msg += f"**{emj} Team {i}** (нийт оноо: `{team['score']}`):\n"
-        team_ids.append([p["member"].id for p in team["players"]])
-        for p in team["players"]:
-            msg += f"• {p['member'].mention} ({p['tier']} / {p['score']:+})\n"
+        msg += f"**{emj} Team {i}**:\n"
+        team_ids.append([member.id for member, _, _ in team])
+        for member, tier, score in team:
+            msg += f"• {member.mention} ({tier} / {score:+})\n"
         msg += "\n"
-
-    if unassigned_players:
-        msg += "⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n"
-        for p in unassigned_players:
-            msg += f"• {p['member'].mention} ({p['tier']} / {p['score']:+})\n"
 
     await interaction.followup.send(msg)
 
-    TEAM_SETUP["player_ids"] = [p["member"].id for t in teams for p in t["players"]]
+    TEAM_SETUP["player_ids"] = [member.id for team in teams for member, _, _ in team]
     TEAM_SETUP["teams"] = team_ids
 
     now = datetime.now(timezone.utc)
@@ -679,6 +631,7 @@ async def make_team_go(interaction: discord.Interaction):
     team_log.append(team_log_entry)
     with open("team_log.json", "w") as f:
         json.dump(team_log, f, indent=2)
+
 
 
 # 🏆 Winner Team сонгох
