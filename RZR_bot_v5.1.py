@@ -1231,12 +1231,12 @@ async def add_donator(interaction: discord.Interaction, member: discord.Member, 
     tier = scores.get(uid, {}).get("tier", "4-1")
     base_nick = clean_nickname(member.nick or member.name)  # ← энэ мөрийг сольсон
 
-    for prefix in TIER_ORDER:
-        if base_nick.startswith(f"{prefix} |"):
-            base_nick = base_nick[len(prefix) + 2:].strip()
-    for icon in ["💰", "💸", "👑"]:
-        if base_nick.startswith(f"{icon} "):
-            base_nick = base_nick[len(icon) + 1:].strip()
+    #for prefix in TIER_ORDER:
+    #   if base_nick.startswith(f"{prefix} |"):
+    #        base_nick = base_nick[len(prefix) + 2:].strip()
+    #for icon in ["💰", "💸", "👑"]:
+    #    if base_nick.startswith(f"{icon} "):
+    #        base_nick = base_nick[len(icon) + 1:].strip()
 
     # 🎖 emoji logic
     total_mnt = donors[uid]["total_mnt"]
