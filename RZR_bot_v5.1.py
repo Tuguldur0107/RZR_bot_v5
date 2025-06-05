@@ -1480,6 +1480,11 @@ async def on_message(message):
 
 if __name__ == "__main__":
     print("Starting bot...")
+
+    from copy_from_github_to_volume import copy_files_from_app_to_volume
+    copy_files_from_app_to_volume()
+
+    bot.loop.create_task(github_auto_commit())
     keep_alive()
     TOKEN = os.environ["TOKEN"]
     bot.run(TOKEN)
