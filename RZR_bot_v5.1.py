@@ -91,6 +91,7 @@ def load_scores():
     with open(SCORE_FILE, "r") as f:
         return json.load(f)
 
+
 def save_scores(data):
     try:
         with open(SCORE_FILE, "w") as f:
@@ -169,13 +170,26 @@ def commit_to_github(filename, message="update"):
 def clean_nickname(nick):
     if not nick:
         return ""
-    for emoji in ["👑", "💸", "💰", "🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]:
+    for emoji in ["👑", "💸", "💰", "⚪️", "🟢", "🔵", "🟣", "🟠", "🔴", "🟡", "🟤", "⚫️"]:
         if nick.startswith(f"{emoji} "):
             nick = nick[len(emoji) + 1:].strip()
     for tier in TIER_ORDER:
         if nick.startswith(f"{tier} |"):
             nick = nick[len(tier) + 2:].strip()
     return nick
+
+def tier_emoji(tier):
+    return {
+        "4-3": "⚪️",
+        "4-2": "🟢",
+        "4-1": "🔵",
+        "3-3": "🟣",
+        "3-2": "🟠",
+        "3-1": "🔴",
+        "2-3": "🟡",
+        "2-2": "🟤",
+        "2-1": "⚫️"
+    }.get(tier, "❓")
 
 
 def load_shields():
