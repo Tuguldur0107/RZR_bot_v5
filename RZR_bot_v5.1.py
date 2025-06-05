@@ -559,116 +559,71 @@ async def addme(interaction: discord.Interaction):
     else:
         await interaction.followup.send("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
 
-@bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг багт хуваана")
+@bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг тэнцвэртэйгээр багт хуваарилна")
 async def make_team_go(interaction: discord.Interaction):
-    if TEAM_SETUP.get("initiator_id") is None:
-        await interaction.response.send_message("⚠️ Эхлээд /make_team командаар тохиргоо хийгээрэй.")
-        return
-
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
-        print("❌ Interaction expired.")
         return
 
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
-        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
+        await interaction.followup.send("❌ Баг хуваарилалтыг зөвхөн эхлүүлсэн хүн хийж чадна.")
         return
 
+    guild = interaction.guild
+    player_ids = TEAM_SETUP["player_ids"]
     team_count = TEAM_SETUP["team_count"]
     players_per_team = TEAM_SETUP["players_per_team"]
-    user_ids = TEAM_SETUP["player_ids"]
-    total_slots = team_count * players_per_team
 
-    guild = interaction.guild
+    total_slots = team_count * players_per_team
+    if len(player_ids) != total_slots:
+        await interaction.followup.send(f"⚠️ Тоглогчдын тоо {total_slots} биш байна.")
+        return
+
     scores = load_scores()
 
-    tier_score = {
-        "4-3": 0, "4-2": 5, "4-1": 10,
-        "3-3": 15, "3-2": 20, "3-1": 25,
-        "2-3": 30, "2-2": 35, "2-1": 40
-    }
-
-    player_info = []
-    for uid in user_ids:
-        member = guild.get_member(uid)
-        if not member:
-            continue
-        data = scores.get(str(uid), {"tier": "4-1", "score": 0})
-        tier = data.get("tier", get_tier())
+    def tier_score(data):
+        tier = data.get("tier", "4-3")
         score = data.get("score", 0)
-        base = tier_score.get(tier, 5)
-        real_score = base + score
-        player_info.append({
-            "member": member,
-            "tier": tier,
-            "score": score,
-            "real_score": real_score
-        })
+        tier_map = {
+            "4-3": 0, "4-2": 1, "4-1": 2,
+            "3-3": 3, "3-2": 4, "3-1": 5,
+            "2-3": 6, "2-2": 7, "2-1": 8,
+        }
+        return tier_map.get(tier, 0) * 10 + score
 
-    player_info.sort(key=lambda x: -x["real_score"])
-    teams = [{"players": [], "score": 0} for _ in range(team_count)]
+    # 🧠 Тоглогчдыг TierScore ашиглан ангилна
+    players = []
+    for uid in player_ids:
+        data = scores.get(str(uid), {})
+        member = guild.get_member(uid)
+        if member:
+            players.append((uid, member.display_name, tier_score(data)))
 
-    i, j = 0, len(player_info) - 1
-    while i <= j:
-        for t in teams:
-            if not isinstance(t, dict) or "players" not in t or "score" not in t:
-                continue
-            if i <= j and len(t["players"]) < players_per_team:
-                t["players"].append(player_info[i])
-                t["score"] += player_info[i]["real_score"]
-                i += 1
-            if i <= j and len(t["players"]) < players_per_team:
-                t["players"].append(player_info[j])
-                t["score"] += player_info[j]["real_score"]
-                j -= 1
+    # 🪣 3 ангилал: сайн, дундаж, муу
+    players.sort(key=lambda x: x[2], reverse=True)
+    buckets = [[], [], []]
+    for i, p in enumerate(players):
+        buckets[i % 3].append(p)
 
-    assigned_players = [p for t in teams for p in t["players"]]
-    unassigned_players = [p for p in player_info if p not in assigned_players]
+    # ⚖️ Баг бүрт тэнцүү хольж өгнө
+    teams = [[] for _ in range(team_count)]
+    for bucket in buckets:
+        random.shuffle(bucket)
+        for i, p in enumerate(bucket):
+            teams[i % team_count].append(p)
 
-    emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]
-    msg = f"**🧐 {len(player_info)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
+    TEAM_SETUP["teams"] = [
+        [uid for uid, _, _ in team] for team in teams
+    ]
 
-    team_ids = []
+    # 📤 Мессеж
+    msg = "📦 **Тэнцвэртэй багийн хуваарилалт:**\n"
     for i, team in enumerate(teams, 1):
-        emj = emojis[i - 1] if i - 1 < len(emojis) else "🌺"
-        msg += f"**{emj} Team {i}** (нийт оноо: `{team['score']}`):\n"
-        team_ids.append([p["member"].id for p in team["players"]])
-        for p in team["players"]:
-            msg += f"• {p['member'].mention} ({p['tier']} / {p['score']:+})\n"
-        msg += "\n"
-
-    if unassigned_players:
-        msg += "⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n"
-        for p in unassigned_players:
-            msg += f"• {p['member'].mention} ({p['tier']} / {p['score']:+})\n"
+        team_str = ", ".join(f"<@{uid}>" for uid, _, _ in team)
+        msg += f"**Team {i}:** {team_str}\n"
 
     await interaction.followup.send(msg)
-
-    TEAM_SETUP["player_ids"] = [p["member"].id for t in teams for p in t["players"]]
-    TEAM_SETUP["teams"] = team_ids
-
-    now = datetime.now(timezone.utc)
-    GAME_SESSION["active"] = True
-    GAME_SESSION["start_time"] = now
-    GAME_SESSION["last_win_time"] = now
-
-    team_log_entry = {
-        "timestamp": now.isoformat(),
-        "mode": "make_team_go",
-        "teams": TEAM_SETUP["teams"],
-        "initiator": interaction.user.id
-    }
-
-    try:
-        with open("team_log.json", "r") as f:
-            team_log = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        team_log = []
-
-    team_log.append(team_log_entry)
-    with open("team_log.json", "w") as f:
-        json.dump(team_log, f, indent=2)
 
 # 🏆 Winner Team сонгох
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
