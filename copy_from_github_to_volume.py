@@ -4,7 +4,7 @@ import os
 def copy_files_from_app_to_volume():
     print("🚚 GitHub-аас Render volume руу JSON хуулж байна...")
 
-    LOCAL_PATH = "/app"  # GitHub-аас татагдсан app-ын үндэс
+    LOCAL_PATH = "/opt/render/project/src"
     VOLUME_PATH = "/render_disks/rzr-disk"
 
     json_files = [
@@ -25,3 +25,5 @@ def copy_files_from_app_to_volume():
             print(f"✅ {file} → Render volume руу хууллаа.")
         except Exception as e:
             print(f"❌ {file} хуулж чадсангүй: {e}")
+    print("📁 JSON exists:", os.path.exists("/opt/render/project/src/scores.json"))
+
