@@ -122,9 +122,9 @@ def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: s
         "reason": reason
     }
     print(f"[score_log] {entry}")
+
     with open(SCORE_LOG_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
-
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
@@ -177,6 +177,7 @@ def commit_to_github(filename, message="update"):
         print(f"✅ {github_path} GitHub-д хадгалагдлаа.")
     else:
         print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
+    
 
 
 def clean_nickname(nick):
