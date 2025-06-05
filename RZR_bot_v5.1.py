@@ -10,19 +10,19 @@ import base64
 import requests
 from keep_alive import keep_alive
 
-BASE_DIR = "/mnt/data"
+BASE_DIR = "/render_disks/rzr-disk"
 
 start = datetime.now(timezone.utc)
 end = start + timedelta(hours=5)
 
 elapsed = end - start  # ⏱ timedelta object
 
-SCORE_FILE = f"{BASE_DIR}/scores.json"
-LOG_FILE = f"{BASE_DIR}/match_log.json"
-LAST_FILE = f"{BASE_DIR}/last_match.json"
-SHIELD_FILE = f"{BASE_DIR}/donate_shields.json"
-DONATOR_FILE = f"{BASE_DIR}/donator.json"
-SCORE_LOG_FILE = f"{BASE_DIR}/score_log.jsonl"
+SCORE_FILE       = f"{BASE_DIR}/scores.json"
+LOG_FILE         = f"{BASE_DIR}/match_log.json"
+LAST_FILE        = f"{BASE_DIR}/last_match.json"
+SHIELD_FILE      = f"{BASE_DIR}/donate_shields.json"
+DONATOR_FILE     = f"{BASE_DIR}/donator.json"
+SCORE_LOG_FILE   = f"{BASE_DIR}/score_log.jsonl"
 
 # 🧠 Тоглоомын Session-н төлөв
 GAME_SESSION = {
@@ -38,6 +38,18 @@ TEAM_SETUP = {
     "teams": [],
     "changed_players": []
 }
+
+def init_data_file(path, default):
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump(default, f)
+
+init_data_file(SCORE_FILE, {})
+init_data_file(LOG_FILE, [])
+init_data_file(LAST_FILE, {})
+init_data_file(SHIELD_FILE, {})
+init_data_file(DONATOR_FILE, {})
+init_data_file(SCORE_LOG_FILE, [])
 
 def load_donators():
     if not os.path.exists(DONATOR_FILE):
