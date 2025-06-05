@@ -214,9 +214,11 @@ async def update_nicknames_for_users(guild, user_ids: list):
             # ⛔️ Давхардахаас сэргийлж өмнөх tier, emoji-г цэвэрлэнэ
             base_nick = clean_nickname(base_nick)
 
-            # 💎 Donator emoji-г нэмэх
-            emoji = get_donator_emoji(donors.get(str(user_id), {}))
-            prefix = f"{emoji + ' ' if emoji else ''}{tier}"
+            # 💎 Donator эсвэл Tier emoji-г нэгийг нь л ашиглана
+            donor_data = donors.get(str(user_id), {})
+            emoji = get_donator_emoji(donor_data) or tier_emoji(tier)
+
+            prefix = f"{emoji} {tier}" if emoji else tier
             new_nick = f"{prefix} | {base_nick}"
 
             try:
@@ -225,8 +227,6 @@ async def update_nicknames_for_users(guild, user_ids: list):
                 print(f"⛔️ {member} nickname-г өөрчилж чадсангүй.")
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
-
-
 
 # ⏱️ Session хугацаа дууссан эсэх шалгагч task
 async def session_timeout_checker():
@@ -538,13 +538,13 @@ async def make_team_go(interaction: discord.Interaction):
     if TEAM_SETUP.get("initiator_id") is None:
         await interaction.response.send_message("⚠️ Эхлээд /make_team командаар тохиргоо хийгээрэй.")
         return
-    
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
         print("❌ Interaction expired.")
         return
-     
+
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
         await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн баг хуваарилалтыг эхлүүлж болно.")
         return
@@ -558,15 +558,9 @@ async def make_team_go(interaction: discord.Interaction):
     scores = load_scores()
 
     tier_score = {
-        "4-3": 0,
-        "4-2": 5,
-        "4-1": 10,
-        "3-3": 15,
-        "3-2": 20,
-        "3-1": 25,
-        "2-3": 30,
-        "2-2": 35,
-        "2-1": 40
+        "4-3": 0, "4-2": 5, "4-1": 10,
+        "3-3": 15, "3-2": 20, "3-1": 25,
+        "2-3": 30, "2-2": 35, "2-1": 40
     }
 
     player_info = []
@@ -586,16 +580,20 @@ async def make_team_go(interaction: discord.Interaction):
             "real_score": real_score
         })
 
+    player_info.sort(key=lambda x: -x["real_score"])  # өндөр оноотойгоор эрэмбэл
     teams = [{"players": [], "score": 0} for _ in range(team_count)]
-    player_info.sort(key=lambda x: -x["real_score"])
 
-    for player in player_info:
-        valid_teams = [t for t in teams if len(t["players"]) < players_per_team]
-        if not valid_teams:
-            break
-        target_team = min(valid_teams, key=lambda t: t["score"])
-        target_team["players"].append(player)
-        target_team["score"] += player["real_score"]
+    i, j = 0, len(player_info) - 1
+    while i <= j:
+        for t in teams:
+            if i <= j and len(t["players"]) < players_per_team:
+                t["players"].append(player_info[i])
+                t["score"] += player_info[i]["real_score"]
+                i += 1
+            if i <= j and len(t["players"]) < players_per_team:
+                t["players"].append(player_info[j])
+                t["score"] += player_info[j]["real_score"]
+                j -= 1
 
     assigned_players = [p for t in teams for p in t["players"]]
     unassigned_players = [p for p in player_info if p not in assigned_players]
@@ -628,7 +626,7 @@ async def make_team_go(interaction: discord.Interaction):
     GAME_SESSION["last_win_time"] = now
 
     team_log_entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now.isoformat(),
         "mode": "make_team_go",
         "teams": TEAM_SETUP["teams"],
         "initiator": interaction.user.id
@@ -637,7 +635,7 @@ async def make_team_go(interaction: discord.Interaction):
     try:
         with open("team_log.json", "r") as f:
             team_log = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):  # ← JSONDecodeError-г нэм
+    except (FileNotFoundError, json.JSONDecodeError):
         team_log = []
 
     team_log.append(team_log_entry)
@@ -1211,18 +1209,18 @@ async def add_team(interaction: discord.Interaction, mentions: str):
     mnt="Хандивласан мөнгө (₮)"
 )
 async def add_donator(interaction: discord.Interaction, member: discord.Member, mnt: int):
-    # ✅ Эхлээд админ шалгана
+    # ✅ Админ шалгах
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
         return
 
-    # ✅ defer хийнэ
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
         print("❌ Interaction-д аль хэдийн хариулсан байна.")
         return
 
+    # ✅ Donator мэдээллийг хадгалах
     donors = load_donators()
     uid = str(member.id)
     now = datetime.now(timezone.utc).isoformat()
@@ -1238,36 +1236,12 @@ async def add_donator(interaction: discord.Interaction, member: discord.Member, 
 
     save_donators(donors)
 
-    scores = load_scores()
-    tier = scores.get(uid, {}).get("tier", "4-1")
-    base_nick = clean_nickname(member.nick or member.name)  # ← энэ мөрийг сольсон
+    # ✅ Nickname-г update_nicknames_for_users ашиглан цэвэрхэн өөрчилнө
+    await update_nicknames_for_users(interaction.guild, [member.id])
 
-    #for prefix in TIER_ORDER:
-    #   if base_nick.startswith(f"{prefix} |"):
-    #        base_nick = base_nick[len(prefix) + 2:].strip()
-    #for icon in ["💰", "💸", "👑"]:
-    #    if base_nick.startswith(f"{icon} "):
-    #        base_nick = base_nick[len(icon) + 1:].strip()
-
-    # 🎖 emoji logic
     total_mnt = donors[uid]["total_mnt"]
-    if total_mnt >= 30000:
-        emoji = "👑"
-    elif total_mnt >= 10000:
-        emoji = "💸"
-    else:
-        emoji = "💰"
-
-    new_nick = f"{emoji} {tier} | {base_nick}"
-
-    try:
-        await member.edit(nick=new_nick)
-    except discord.Forbidden:
-        await interaction.followup.send("⚠️ Donator болгосон ч nickname өөрчилж чадсангүй (permission issue).", ephemeral=True)
-        return
-
     await interaction.followup.send(
-        f"{emoji} {member.mention} хэрэглэгчийг Donator болголоо! (нийт {total_mnt:,}₮)"
+        f"🎉 {member.mention} хэрэглэгчийг Donator болголоо! (нийт {total_mnt:,}₮)"
     )
 
 @bot.tree.command(name="donator_list", description="Donator хэрэглэгчдийн жагсаалт")
