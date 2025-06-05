@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 import base64
 import requests
-
+from keep_alive import keep_alive
 
 BASE_DIR = "/mnt/data"
 
@@ -712,11 +712,11 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         score = data.get("score", 0)
         tier = data.get("tier", get_tier())
 
-        if await should_deduct(uid_str, shields):
-            score -= 1
-            while score <= -5:
-                tier = demote_tier(tier)
-                score += 5
+        score -= 1
+        while score <= -5:
+            tier = demote_tier(tier)
+            score += 5
+
 
         scores[uid_str] = {
             "username": member.name if member else "unknown",
@@ -1514,5 +1514,6 @@ async def on_message(message):
 
 if __name__ == "__main__":
     print("Starting bot...")
+    keep_alive()
     TOKEN = os.environ["TOKEN"]
     bot.run(TOKEN)
