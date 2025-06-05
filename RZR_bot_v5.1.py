@@ -594,12 +594,14 @@ async def make_team_go(interaction: discord.Interaction):
             "real_score": real_score
         })
 
-    player_info.sort(key=lambda x: -x["real_score"])  # өндөр оноотойгоор эрэмбэл
+    player_info.sort(key=lambda x: -x["real_score"])
     teams = [{"players": [], "score": 0} for _ in range(team_count)]
 
     i, j = 0, len(player_info) - 1
     while i <= j:
         for t in teams:
+            if not isinstance(t, dict) or "players" not in t or "score" not in t:
+                continue
             if i <= j and len(t["players"]) < players_per_team:
                 t["players"].append(player_info[i])
                 t["score"] += player_info[i]["real_score"]
@@ -613,11 +615,11 @@ async def make_team_go(interaction: discord.Interaction):
     unassigned_players = [p for p in player_info if p not in assigned_players]
 
     emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]
-    msg = f"**🤖 {len(player_info)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
+    msg = f"**🧐 {len(player_info)} тоглогчийг {team_count} багт хуваалаа (нэг багт {players_per_team} хүн):**\n\n"
 
     team_ids = []
     for i, team in enumerate(teams, 1):
-        emj = emojis[i - 1] if i - 1 < len(emojis) else "🏅"
+        emj = emojis[i - 1] if i - 1 < len(emojis) else "🌺"
         msg += f"**{emj} Team {i}** (нийт оноо: `{team['score']}`):\n"
         team_ids.append([p["member"].id for p in team["players"]])
         for p in team["players"]:
