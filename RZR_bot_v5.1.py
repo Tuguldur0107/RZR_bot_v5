@@ -460,29 +460,6 @@ async def scoreboard(interaction: discord.Interaction):
     if chunk:
         await interaction.followup.send(chunk)
 
-@bot.tree.command(name="user_tier", description="Хэрэглэгчийн түвшинг харуулна")
-@app_commands.describe(member="Түвшин шалгах хэрэглэгч")
-async def user_tier(interaction: discord.Interaction, member: discord.Member):
-    try:
-        await interaction.response.defer(thinking=True)
-    except discord.errors.InteractionResponded:
-        print("❌ Interaction already responded or expired.")
-        return
-
-    scores = load_scores()
-    user_id = str(member.id)
-    data = scores.get(user_id)
-
-    if isinstance(data, dict):
-        tier = data.get("tier", get_tier())
-        await interaction.followup.send(
-            f"🎖 {member.mention} хэрэглэгчийн түвшин: **{tier}**"
-        )
-    else:
-        await interaction.followup.send(
-            f"⚠️ {member.mention} хэрэглэгчид оноо/төвшин бүртгэгдээгүй байна."
-        )
-
 @bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
 @app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
 async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
@@ -873,49 +850,6 @@ async def donate_shield(interaction: discord.Interaction, member: discord.Member
     await interaction.followup.send(
         f"🛡️ {member.mention} хэрэглэгчид {count} удаагийн хамгаалалт амжилттай өглөө!"
     )
-
-@bot.tree.command(name="init_scores",
-                  description="Бүх гишүүдэд default оноо, tier (4-1) онооно")
-async def init_scores(interaction: discord.Interaction):
-    try:
-        await interaction.response.defer(thinking=True)
-    except discord.errors.InteractionResponded:
-        print("❌ Interaction expired.")
-        return
-
-    # ✅ зөвхөн админ хэрэглэгч ажиллуулна
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.followup.send(
-            "❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.",
-            ephemeral=True
-        )
-        return
-
-    guild = interaction.guild
-    scores = load_scores()
-
-    default_tier = "4-1"
-    for member in guild.members:
-        if member.bot:
-            continue
-        uid = str(member.id)
-        if uid not in scores:
-            scores[uid] = {"score": 0, "tier": default_tier}
-            try:
-                base_nick = member.nick or member.name
-                for prefix in TIER_ORDER:
-                    if base_nick.startswith(f"{prefix} |"):
-                        base_nick = base_nick[len(prefix) + 2:].strip()
-                new_nick = f"{default_tier} | {base_nick}"
-                await member.edit(nick=new_nick)
-            except discord.Forbidden:
-                print(f"⛔️ {member} nickname-г өөрчилж чадсангүй.")
-            except Exception as e:
-                print(f"⚠️ {member} nickname-д алдаа: {e}")
-
-    save_scores(scores)
-    await interaction.followup.send(
-        "✅ Бүх гишүүдэд оноо болон `4-1` түвшин оноолоо.")
 
 @bot.tree.command(name="set_tier", description="Admin: Хэрэглэгчийн tier-г гараар өөрчилнө")
 @app_commands.describe(
