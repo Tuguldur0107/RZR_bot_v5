@@ -1478,13 +1478,14 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-if __name__ == "__main__":
-    print("Starting bot...")
-
+async def main():
     from copy_from_github_to_volume import copy_files_from_app_to_volume
     copy_files_from_app_to_volume()
 
-    bot.loop.create_task(github_auto_commit())
+    bot.loop.create_task(github_auto_commit())  # ⏱ авто commit
     keep_alive()
-    TOKEN = os.environ["TOKEN"]
-    bot.run(TOKEN)
+    await bot.start(os.environ["TOKEN"])       # ⚠️ bot.run биш
+
+if __name__ == "__main__":
+    print("🚀 Starting bot...")
+    asyncio.run(main())
