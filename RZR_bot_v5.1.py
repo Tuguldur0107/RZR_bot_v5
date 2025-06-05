@@ -112,6 +112,7 @@ def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: s
     with open(SCORE_LOG_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
 
+
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
 
@@ -126,6 +127,11 @@ def demote_tier(current_tier):
     idx = TIER_ORDER.index(current_tier)
     return TIER_ORDER[min(len(TIER_ORDER) - 1, idx + 1)]  # буурах
 
+async def should_deduct(uid: str, shields: dict) -> bool:
+    if shields.get(uid, 0) > 0:
+        shields[uid] -= 1
+        return False  # 🛡 хамгаалалт байсан, оноо хасахгүй
+    return True  # хамгаалалт байхгүй → оноо хасна
 
 def get_tier():
     return "4-1"  # default tier
