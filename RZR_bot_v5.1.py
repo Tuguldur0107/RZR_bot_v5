@@ -559,7 +559,7 @@ async def addme(interaction: discord.Interaction):
     else:
         await interaction.followup.send("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
 
-@bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг тэнцвэртэйгээр багт хуваарилна")
+@bot.tree.command(name="make_team_go", description="Тэнцвэртэй баг хуваарилна")
 async def make_team_go(interaction: discord.Interaction):
     try:
         await interaction.response.defer(thinking=True)
@@ -567,17 +567,17 @@ async def make_team_go(interaction: discord.Interaction):
         return
 
     if interaction.user.id != TEAM_SETUP["initiator_id"]:
-        await interaction.followup.send("❌ Баг хуваарилалтыг зөвхөн эхлүүлсэн хүн хийж чадна.")
+        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.")
         return
 
     guild = interaction.guild
     player_ids = TEAM_SETUP["player_ids"]
     team_count = TEAM_SETUP["team_count"]
     players_per_team = TEAM_SETUP["players_per_team"]
-
     total_slots = team_count * players_per_team
+
     if len(player_ids) != total_slots:
-        await interaction.followup.send(f"⚠️ Тоглогчдын тоо {total_slots} биш байна.")
+        await interaction.followup.send(f"⚠️ {total_slots} тоглогч бүртгүүлэх ёстой, одоогоор {len(player_ids)} байна.")
         return
 
     scores = load_scores()
@@ -592,7 +592,7 @@ async def make_team_go(interaction: discord.Interaction):
         }
         return tier_map.get(tier, 0) * 10 + score
 
-    # 🧠 Тоглогчдыг TierScore ашиглан ангилна
+    # 🧠 Тоглогчдыг TierScore-р эрэмбэлж bucket-д хуваана
     players = []
     for uid in player_ids:
         data = scores.get(str(uid), {})
@@ -600,24 +600,27 @@ async def make_team_go(interaction: discord.Interaction):
         if member:
             players.append((uid, member.display_name, tier_score(data)))
 
-    # 🪣 3 ангилал: сайн, дундаж, муу
     players.sort(key=lambda x: x[2], reverse=True)
-    buckets = [[], [], []]
-    for i, p in enumerate(players):
-        buckets[i % 3].append(p)
 
-    # ⚖️ Баг бүрт тэнцүү хольж өгнө
+    # 🪣 players_per_team тооны bucket
+    buckets = [[] for _ in range(players_per_team)]
+    for i, p in enumerate(players):
+        buckets[i % players_per_team].append(p)
+
+    # ⚖️ snake-style хуваарилалт
     teams = [[] for _ in range(team_count)]
-    for bucket in buckets:
+    for idx, bucket in enumerate(buckets):
         random.shuffle(bucket)
-        for i, p in enumerate(bucket):
-            teams[i % team_count].append(p)
+        direction = 1 if idx % 2 == 0 else -1
+        for i, player in enumerate(bucket):
+            t = i if direction == 1 else (team_count - 1 - i)
+            teams[t % team_count].append(player)
 
     TEAM_SETUP["teams"] = [
         [uid for uid, _, _ in team] for team in teams
     ]
 
-    # 📤 Мессеж
+    # 📤 Output
     msg = "📦 **Тэнцвэртэй багийн хуваарилалт:**\n"
     for i, team in enumerate(teams, 1):
         team_str = ", ".join(f"<@{uid}>" for uid, _, _ in team)
