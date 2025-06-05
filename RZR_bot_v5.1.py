@@ -566,7 +566,6 @@ async def make_team_go(interaction: discord.Interaction):
     team_count = TEAM_SETUP["team_count"]
     players_per_team = TEAM_SETUP["players_per_team"]
     user_ids = TEAM_SETUP["player_ids"]
-    total_slots = team_count * players_per_team
 
     guild = interaction.guild
     scores = load_scores()
@@ -595,21 +594,44 @@ async def make_team_go(interaction: discord.Interaction):
         })
 
     player_info.sort(key=lambda x: -x["real_score"])
-    teams = [{"players": [], "score": 0} for _ in range(team_count)]
 
-    i, j = 0, len(player_info) - 1
-    while i <= j:
-        for t in teams:
-            if not isinstance(t, dict) or "players" not in t or "score" not in t:
-                continue
-            if i <= j and len(t["players"]) < players_per_team:
-                t["players"].append(player_info[i])
-                t["score"] += player_info[i]["real_score"]
-                i += 1
-            if i <= j and len(t["players"]) < players_per_team:
-                t["players"].append(player_info[j])
-                t["score"] += player_info[j]["real_score"]
-                j -= 1
+    def calculate_diff(teams):
+        scores = [t["score"] for t in teams]
+        return max(scores) - min(scores)
+
+    def create_teams(player_info):
+        teams = [{"players": [], "score": 0} for _ in range(team_count)]
+        i, j = 0, len(player_info) - 1
+        while i <= j:
+            for t in teams:
+                if i <= j and len(t["players"]) < players_per_team:
+                    t["players"].append(player_info[i])
+                    t["score"] += player_info[i]["real_score"]
+                    i += 1
+                if i <= j and len(t["players"]) < players_per_team:
+                    t["players"].append(player_info[j])
+                    t["score"] += player_info[j]["real_score"]
+                    j -= 1
+        return teams
+
+    def optimize_teams(teams):
+        from random import shuffle
+        flat = [p for t in teams for p in t["players"]]
+        best = teams
+        min_diff = calculate_diff(teams)
+        for _ in range(300):
+            shuffle(flat)
+            new_teams = create_teams(flat.copy())
+            diff = calculate_diff(new_teams)
+            if diff < min_diff:
+                best = new_teams
+                min_diff = diff
+                if diff == 0:
+                    break
+        return best
+
+    teams = create_teams(player_info)
+    teams = optimize_teams(teams)
 
     assigned_players = [p for t in teams for p in t["players"]]
     unassigned_players = [p for p in player_info if p not in assigned_players]
@@ -657,6 +679,7 @@ async def make_team_go(interaction: discord.Interaction):
     team_log.append(team_log_entry)
     with open("team_log.json", "w") as f:
         json.dump(team_log, f, indent=2)
+
 
 # 🏆 Winner Team сонгох
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
