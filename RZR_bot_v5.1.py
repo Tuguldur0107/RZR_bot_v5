@@ -1446,6 +1446,8 @@ async def whois(interaction: discord.Interaction, mention: str):
 async def on_ready():
     print(f"🤖 Bot logged in as {bot.user}")
     print("📁 Working directory:", os.getcwd())
+    bot.loop.create_task(session_timeout_checker())
+    bot.loop.create_task(github_auto_commit())
 
     for guild in bot.guilds:
         bot.tree.copy_global_to(guild=guild)
@@ -1482,7 +1484,6 @@ async def main():
     from copy_from_github_to_volume import copy_files_from_app_to_volume
     copy_files_from_app_to_volume()
 
-    bot.loop.create_task(github_auto_commit())  # ⏱ авто commit
     keep_alive()
     await bot.start(os.environ["TOKEN"])       # ⚠️ bot.run биш
 
