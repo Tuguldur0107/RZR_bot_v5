@@ -532,8 +532,13 @@ async def addme(interaction: discord.Interaction):
         )
     else:
         await interaction.followup.send("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
+
 @bot.tree.command(name="make_team_go", description="Бүртгүүлсэн тоглогчдыг багт хуваана")
 async def make_team_go(interaction: discord.Interaction):
+    if TEAM_SETUP.get("initiator_id") is None:
+        await interaction.response.send_message("⚠️ Эхлээд /make_team командаар тохиргоо хийгээрэй.")
+        return
+    
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
