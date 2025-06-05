@@ -166,15 +166,15 @@ def commit_to_github(filename, message="update"):
         print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
 
 
-def clean_nickname(nick: str) -> str:
-    for prefix in TIER_ORDER:
-        if nick.startswith(f"{prefix} |"):
-            nick = nick[len(prefix) + 2:].strip()
-            break
-    for emoji in ["💰", "💸", "👑"]:
+def clean_nickname(nick):
+    if not nick:
+        return ""
+    for emoji in ["👑", "💸", "💰", "🥇", "🥈", "🥉", "🎯", "🔥", "⚡️", "🛡", "🎮", "👾", "🎲"]:
         if nick.startswith(f"{emoji} "):
             nick = nick[len(emoji) + 1:].strip()
-            break
+    for tier in TIER_ORDER:
+        if nick.startswith(f"{tier} |"):
+            nick = nick[len(tier) + 2:].strip()
     return nick
 
 
@@ -210,16 +210,16 @@ async def update_nicknames_for_users(guild, user_ids: list):
         if member:
             tier = data.get("tier", get_tier())
             base_nick = member.nick or member.name
-
-            # ⛔️ Давхардахаас сэргийлж өмнөх tier, emoji-г цэвэрлэнэ
             base_nick = clean_nickname(base_nick)
 
-            # 💎 Donator эсвэл Tier emoji-г нэгийг нь л ашиглана
             donor_data = donors.get(str(user_id), {})
             emoji = get_donator_emoji(donor_data) or tier_emoji(tier)
 
             prefix = f"{emoji} {tier}" if emoji else tier
             new_nick = f"{prefix} | {base_nick}"
+
+            if member.nick == new_nick:
+                continue  # 🤝 Яг ижил бол алгас
 
             try:
                 await member.edit(nick=new_nick)
