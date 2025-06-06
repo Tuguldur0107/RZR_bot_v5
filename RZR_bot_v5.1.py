@@ -191,23 +191,26 @@ def clean_nickname(nick):
     if not nick:
         return ""
 
+    emojis = ["👑", "💸", "💰", "⚫️"]
+    tiers = [
+        "4-3", "4-2", "4-1",
+        "3-3", "3-2", "3-1",
+        "2-3", "2-2", "2-1"
+    ]
+
     while True:
         original = nick
 
-        for emoji in ["👑", "💸", "💰", "⚫️"]:
+        for emoji in emojis:
             if nick.startswith(f"{emoji} "):
                 nick = nick[len(emoji) + 1:].strip()
 
-        for tier in [
-            "4-3", "4-2", "4-1",
-            "3-3", "3-2", "3-1",
-            "2-3", "2-2", "2-1"
-        ]:
+        for tier in tiers:
             if nick.startswith(f"{tier} |"):
                 nick = nick[len(tier) + 2:].strip()
 
         if nick == original:
-            break  # 😎 дахиж өөрчлөгдөхгүй болсон тул зогсооно
+            break
 
     return nick
 
