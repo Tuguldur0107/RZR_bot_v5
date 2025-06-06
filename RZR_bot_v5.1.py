@@ -9,6 +9,8 @@ from datetime import datetime, timezone, timedelta
 import base64
 import requests
 from keep_alive import keep_alive
+import re
+
 
 # ✅ Токенуудаа энд тодорхойлно
 OPENAI_API_KEY = os.getenv("GPT_TOKEN")
@@ -187,6 +189,8 @@ def get_team_user_ids(team_number):  # 👈 энд зөө
         return teams[team_number - 1]
     return []
 
+
+
 def clean_nickname(nick):
     if not nick:
         return ""
@@ -198,21 +202,17 @@ def clean_nickname(nick):
         "2-3", "2-2", "2-1"
     ]
 
-    while True:
-        original = nick
+    # Emoji-нуудыг арилгана
+    for emoji in emojis:
+        pattern = re.compile(rf"{re.escape(emoji)}\s*")
+        nick = pattern.sub("", nick)
 
-        for emoji in emojis:
-            if nick.startswith(f"{emoji} "):
-                nick = nick[len(emoji) + 1:].strip()
+    # Tier-үүдийг арилгана (ж: "4-2 |")
+    for tier in tiers:
+        pattern = re.compile(rf"{re.escape(tier)}\s*\|\s*")
+        nick = pattern.sub("", nick)
 
-        for tier in tiers:
-            if nick.startswith(f"{tier} |"):
-                nick = nick[len(tier) + 2:].strip()
-
-        if nick == original:
-            break
-
-    return nick
+    return nick.strip()
 
 
 def tier_emoji(tier):
@@ -1533,7 +1533,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         # ✅ Нэр шинэчлэх: давхар emoji + tier устгаж, шинээр онооно
         emoji = tier_emoji(tier)
         clean_name = clean_nickname(member.display_name)
-        new_nick = f"{emoji} {tier} | {clean_name}"
+        new_nick = f"{emoji} | {clean_name}"
 
         try:
             await member.edit(nick=new_nick)
