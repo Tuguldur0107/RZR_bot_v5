@@ -191,19 +191,23 @@ def clean_nickname(nick):
     if not nick:
         return ""
 
-    # Emoji prefix-үүд
-    for emoji in ["👑", "💸", "💰", "⚫️"]:
-        if nick.startswith(f"{emoji} "):
-            nick = nick[len(emoji) + 1:].strip()
+    while True:
+        original = nick
 
-    # Tier prefix-үүд
-    for tier in [
-        "4-3", "4-2", "4-1",
-        "3-3", "3-2", "3-1",
-        "2-3", "2-2", "2-1"
-    ]:
-        if nick.startswith(f"{tier} |"):
-            nick = nick[len(tier) + 2:].strip()
+        for emoji in ["👑", "💸", "💰", "⚫️"]:
+            if nick.startswith(f"{emoji} "):
+                nick = nick[len(emoji) + 1:].strip()
+
+        for tier in [
+            "4-3", "4-2", "4-1",
+            "3-3", "3-2", "3-1",
+            "2-3", "2-2", "2-1"
+        ]:
+            if nick.startswith(f"{tier} |"):
+                nick = nick[len(tier) + 2:].strip()
+
+        if nick == original:
+            break  # 😎 дахиж өөрчлөгдөхгүй болсон тул зогсооно
 
     return nick
 
