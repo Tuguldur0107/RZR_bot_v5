@@ -303,10 +303,9 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
             n=1,
             logprobs=False,
             user="rzr_balance_bot",
-            tool_choice="none",
             logit_bias={},
-            # ✅ `store=True` тохиргоо log-д үзүүлэх зорилготой (1.3.5+ дэмждэг)
-            store=True  
+            response_format="text",
+            store=True
         )
     except Exception as e:
         print("❌ GPT API chat.completions.create алдаа:", e)
