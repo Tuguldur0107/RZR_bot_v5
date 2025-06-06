@@ -613,9 +613,9 @@ async def addme(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.", ephemeral=True)
         return
 
-    # ❌ Хэрвээ аль хэдийн баг хуваарилагдсан бол addme-г хаана
-    if TEAM_SETUP.get("teams"):
-        await interaction.response.send_message("⚠️ Багийн хуваарилалт аль хэдийн хийгдсэн тул нэмэх боломжгүй.", ephemeral=True)
+    # ❌ Хэрвээ тэмцээн аль хэдийн эхэлсэн (make_team_go эсвэл gpt_go хийгдсэн) бол бүртгэхгүй
+    if TEAM_SETUP.get("teams") and any(TEAM_SETUP["teams"]):
+        await interaction.response.send_message("🚫 Тэмцээн аль хэдийн эхэлсэн тул бүртгэх боломжгүй.", ephemeral=True)
         return
 
     user_id = interaction.user.id
