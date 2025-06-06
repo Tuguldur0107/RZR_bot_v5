@@ -438,17 +438,21 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
         print("❌ Interaction expired.")
         return
 
+    # 🛑 Session байсан бол шууд хаана
     if GAME_SESSION["active"]:
-        await interaction.followup.send("⚠️ Session аль хэдийн идэвхтэй байна. Дууссан эсэхийг шалгана уу.", ephemeral=True)
-        return
+        GAME_SESSION["active"] = False
+        GAME_SESSION["start_time"] = None
+        GAME_SESSION["last_win_time"] = None
+        GAME_SESSION["last_make_team_time"] = None
+        GAME_SESSION["can_add"] = False
 
-    # 🧠 Session шинэчилнэ
+    # 🧠 Шинэ session эхлүүлнэ
     now = datetime.now(timezone.utc)
     GAME_SESSION["active"] = True
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
-    GAME_SESSION["last_make_team_time"] = now  # ← энэ мөрийг нэм
-    GAME_SESSION["can_add"] = True  # ✅ addme боломжтой болгож нээнэ
+    GAME_SESSION["last_make_team_time"] = now
+    GAME_SESSION["can_add"] = True
 
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
@@ -457,9 +461,9 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     TEAM_SETUP["changed_players"] = []
 
     await interaction.followup.send(
-        f"🎯 Багийн тохиргоо эхэллээ! Нийт {team_count} баг, нэг багт {players_per_team} хүн байна.\n"
-        f"🎮 Тоглогчид `/addme` гэж бүртгүүлнэ үү.\n"
-        f"⏳ 24 цагийн дотор `/make_team_go` эсвэл `/gpt_go` командуудыг ажиллуулна."
+        f"🔄 Өмнөх session хаагдаж, шинэ багийн тохиргоо эхэллээ!\n"
+        f"📦 Нийт {team_count} баг, нэг багт {players_per_team} хүн байна.\n"
+        f"🎮 Тоглогчид `/addme` гэж бүртгүүлнэ үү."
     )
 
 @bot.tree.command(name="addme", description="Тоглоомд оролцохоор бүртгүүлнэ")
