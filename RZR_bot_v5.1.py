@@ -570,13 +570,13 @@ async def scoreboard(interaction: discord.Interaction):
 @bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
 @app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
 async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
-    global TEAM_SETUP  # 👉 ЭНЭ МӨРИЙГ нэм
+    global TEAM_SETUP
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
         print("❌ Interaction expired.")
         return
-       
+
     # 🔄 Хуучин session-ийг дуусгаж, шинэ тохиргоо эхлүүлнэ
     GAME_SESSION["active"] = False
     GAME_SESSION["start_time"] = None
@@ -586,9 +586,14 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
     TEAM_SETUP["player_ids"] = []
-    
     TEAM_SETUP["teams"] = []
     TEAM_SETUP["changed_players"] = []
+
+    # 🟢 Session-г идэвхжүүлнэ
+    GAME_SESSION["active"] = True
+    now = datetime.now(timezone.utc)
+    GAME_SESSION["start_time"] = now
+    GAME_SESSION["last_win_time"] = now
 
     await interaction.followup.send(
         f"🎯 Багийн тохиргоо эхэллээ! Нийт {team_count} баг, нэг багт {players_per_team} хүн байна. "
