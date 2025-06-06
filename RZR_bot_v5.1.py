@@ -1562,6 +1562,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         }
 
         log_score_transaction(uid_str, points, score, tier, "manual")
+        save_scores(scores)  # <<== энэ мөрийг заавал нэм
         updated.append(member)
 
         # ✅ Нэрийг төвлөрсөн функцээр шинэчилнэ
