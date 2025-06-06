@@ -12,6 +12,8 @@ import re
 
 # ✅ Токенуудаа энд тодорхойлно
 OPENAI_API_KEY = os.getenv("GPT_TOKEN")
+if not OPENAI_API_KEY:
+    raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна.")
 
 BASE_DIR = "/render_disks/rzr-disk"
 
@@ -271,7 +273,11 @@ def calc_diff(teams):
 
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
+
     print(f"🔑 OPENAI_API_KEY: {OPENAI_API_KEY}")
+    if not OPENAI_API_KEY:
+        raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна!")
+    
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
