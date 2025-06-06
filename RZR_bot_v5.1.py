@@ -416,11 +416,12 @@ async def session_timeout_checker():
         await asyncio.sleep(60)  # 1 минут тутамд шалгана
         if GAME_SESSION["active"]:
             now = datetime.now(timezone.utc)
-            elapsed = now - GAME_SESSION["last_win_time"]
+            elapsed = now - GAME_SESSION["last_make_team_time"]
             if elapsed.total_seconds() > 86400:  # 24 цаг = 86400 секунд
                 GAME_SESSION["active"] = False
                 GAME_SESSION["start_time"] = None
                 GAME_SESSION["last_win_time"] = None
+                GAME_SESSION["last_make_team_time"] = None
                 print("🔚 Session автоматаар хаагдлаа (24 цаг өнгөрсөн).")
 
 intents = discord.Intents.all()
@@ -669,6 +670,8 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     GAME_SESSION["active"] = True
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
+    GAME_SESSION["last_make_team_time"] = now  # ← энэ мөрийг нэм
+    GAME_SESSION["can_add"] = True  # ✅ addme боломжтой болгож нээнэ
 
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
@@ -686,6 +689,9 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
 async def addme(interaction: discord.Interaction):
     if not GAME_SESSION["active"]:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.", ephemeral=True)
+        return
+    if not GAME_SESSION.get("can_add", True):
+        await interaction.response.send_message("🛑 Одоо бүртгүүлж болохгүй. Баг аль хэдийн хуваарилагдсан байна.", ephemeral=True)
         return
 
     now = datetime.now(timezone.utc)
@@ -769,6 +775,7 @@ async def make_team_go(interaction: discord.Interaction):
 
     TEAM_SETUP["teams"] = final_teams
     GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)  # 🕓 Session шинэчилнэ
+    GAME_SESSION["can_add"] = False
 
     team_emojis = ["🏆", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
     msg_lines = [f"🤖 **{len(player_ids)} тоглогчийг {team_count} багт хувиарлалаа (нэг багт {players_per_team} хүн):**"]
