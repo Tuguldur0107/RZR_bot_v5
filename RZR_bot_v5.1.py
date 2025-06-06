@@ -193,7 +193,7 @@ def clean_nickname(nick):
     if not nick:
         return ""
 
-    emojis = ["👑", "💸", "💰", "⚫️"]
+    emojis = ["👑", "💸", "💰", "⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️"]
     tiers = [
         "4-3", "4-2", "4-1",
         "3-3", "3-2", "3-1",
@@ -206,12 +206,12 @@ def clean_nickname(nick):
             pattern = re.compile(rf"{re.escape(emoji)}\s*{re.escape(tier)}\s*\|\s*")
             nick = pattern.sub("", nick)
 
-    # Дангаар emoji үлдсэн бол устгана
+    # ✅ Давхардсан emoji-г дангаар нь устгана
     for emoji in emojis:
-        pattern = re.compile(rf"{re.escape(emoji)}(\s*\|\s*)?")
+        pattern = re.compile(rf"(?:{re.escape(emoji)}\s*)+")
         nick = pattern.sub("", nick)
 
-    # Дангаар tier үлдсэн бол устгана
+    # ✅ Давхардсан tier | -г дангаар нь устгана
     for tier in tiers:
         pattern = re.compile(rf"{re.escape(tier)}\s*\|\s*")
         nick = pattern.sub("", nick)
