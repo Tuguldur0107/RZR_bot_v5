@@ -9,11 +9,13 @@ import base64
 import requests
 from keep_alive import keep_alive
 import re
+from openai import OpenAI
 
-# ✅ Токенуудаа энд тодорхойлно
+# 🔑 Token орчноос авах
 OPENAI_API_KEY = os.getenv("GPT_TOKEN")
-if not OPENAI_API_KEY:
-    raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна.")
+
+# ✅ Client үүсгэнэ
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 BASE_DIR = "/render_disks/rzr-disk"
 
@@ -273,19 +275,10 @@ def calc_diff(teams):
 
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
-    import json
-    import time
-    import requests
-
     if not OPENAI_API_KEY:
         raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна.")
 
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
+    # 🧠 Prompt үүсгэх
     prompt = f"""
 {team_count} багт {players_per_team * team_count} тоглогчийг онооны дагуу тэнцвэртэй хувиарла.
 Тоглогчид: {player_scores}
@@ -295,35 +288,28 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 {{"teams": [[123,456],[789,101]]}}
 """.strip()
 
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [
-            {"role": "system", "content": "You're a helpful assistant that balances teams."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.0,
-        "store": True  # ✅ Энэ мөрийг нэм!
-    }
-
-
     print("📡 GPT-д хүсэлт илгээж байна...")
 
     try:
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 429:
-            print("⚠️ Rate limit хэтэрсэн. 20 секунд хүлээж дахин оролдож байна...")
-            time.sleep(20)
-            response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
+        # 🧠 GPT-ээс тэнцвэртэй багийн JSON хүсэх
+        response = client.responses.create(
+            model="gpt-4o",
+            input=prompt,
+            text={
+                "type": "text"
+            },
+            store=True,  # ✅ Logs дээр харагдуулах
+            temperature=0.0
+        )
     except Exception as e:
-        print("❌ GPT API холболтын алдаа:", e)
+        print("❌ GPT API responses.create алдаа:", e)
         raise
 
     try:
-        content = response.json()["choices"][0]["message"]["content"]
-        print("📥 GPT response:\n", content)
+        content = response.output.text
+        print("📥 GPT response content:\n", content)
     except Exception as e:
-        print("❌ GPT response structure алдаа:", e)
+        print("❌ GPT output structure алдаа:", e)
         raise
 
     try:
