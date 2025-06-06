@@ -753,7 +753,6 @@ async def gpt_go(interaction: discord.Interaction):
 
     await interaction.followup.send(msg)
 
-# 🏆 Winner Team сонгох
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
 @app_commands.describe(winning_team="Хожсон багийн дугаар", losing_team="Хожигдсон багийн дугаар")
 async def set_winner_team(interaction: discord.Interaction, winning_team: int, losing_team: int):
@@ -808,7 +807,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         log_score_transaction(uid_str, +1, score, tier, "win")
-
         changed_ids.append(uid)
         if member:
             winners.append(member.mention)
@@ -817,10 +815,9 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         uid_str = str(uid)
         member = guild.get_member(uid)
         data = scores.get(uid_str, {})
-        score = data.get("score", 0)
+        score = data.get("score", 0) - 1
         tier = data.get("tier", get_tier())
 
-        score -= 1
         while score <= -5:
             tier = demote_tier(tier)
             score += 5
@@ -832,7 +829,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         log_score_transaction(uid_str, -1, score, tier, "loss")
-
         changed_ids.append(uid)
         if member:
             losers.append(member.mention)
@@ -847,6 +843,34 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         "teams": TEAM_SETUP.get("teams", []),
         "winner_team": winning_team,
         "loser_team": losing_team,
+        "changed_players": TEAM_SETUP.get("changed_players", []),
+        "initiator": interaction.user.id
+    }
+
+    try:
+        with open(LOG_FILE, "r") as f:
+            log = json.load(f)
+    except FileNotFoundError:
+        log = []
+
+    log.append(log_entry)
+    with open(LOG_FILE, "w") as f:
+        json.dump(log, f, indent=2)
+
+    last_entry = {
+        "timestamp": log_entry["timestamp"],
+        "mode": log_entry["mode"],
+        "winners": winning_ids,
+        "losers": losing_ids
+    }
+    with open(LAST_FILE, "w") as f:
+        json.dump(last_entry, f, indent=2)
+
+    await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
+    await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
+
+    GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)
+
 
 @bot.tree.command(name="change_player", description="Багт тоглогч солих")
 @app_commands.describe(from_member="Солигдох тоглогч", to_member="Шинэ тоглогч")
