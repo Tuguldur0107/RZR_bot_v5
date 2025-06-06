@@ -1480,7 +1480,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         )
         return
 
-    # ✅ Дараа нь defer
+    # ✅ Defer
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -1505,6 +1505,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
             failed.append(uid_str)
             continue
 
+        # ✅ Оноо болон tier тооцоолол
         data = scores.get(uid_str, {})
         old_score = data.get("score", 0)
         old_tier = data.get("tier", get_tier())
@@ -1518,6 +1519,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
             tier = demote_tier(tier)
             score += 5
 
+        # ✅ Оноо хадгална
         scores[uid_str] = {
             "username": member.name,
             "score": score,
@@ -1528,17 +1530,21 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         log_score_transaction(uid_str, points, score, tier, "manual")
         updated.append(member)
 
-    save_scores(scores)
-    await update_nicknames_for_users(interaction.guild, [int(uid) for uid in user_ids])
+        # ✅ Нэр шинэчлэх: давхар emoji + tier устгаж, шинээр онооно
+        emoji = tier_emoji(tier)
+        clean_name = clean_nickname(member.display_name)
+        new_nick = f"{emoji} {tier} | {clean_name}"
 
-    success_mentions = ", ".join([m.mention for m in updated])
-    fail_mentions = ", ".join([f"<@{uid}>" for uid in failed])
+        try:
+            await member.edit(nick=new_nick)
+        except Exception as e:
+            print(f"⚠️ Nickname өөрчлөх үед алдаа гарлаа: {e}")
 
-    msg = f"✅ Оноо `{points}`-оор шинэчлэгдлээ: {success_mentions}" if updated else ""
-    if failed:
-        msg += f"\n⚠️ Fetch хийхэд алдаа гарсан: {fail_mentions}"
-
-    await interaction.followup.send(msg or "⚠️ Оноо шинэчилсэн хэрэглэгч олдсонгүй.")
+    # ✅ Хариу илгээнэ
+    if updated:
+        await interaction.followup.send(f"✅ Оноо {points:+}–оор шинэчлэгдлээ: {', '.join([member.mention for member in updated])}")
+    elif failed:
+        await interaction.followup.send("⚠️ Зарим хэрэглэгчийн мэдээлэл олдсонгүй.")
 
 @bot.tree.command(name="resync", description="Slash командуудыг дахин сервертэй sync хийнэ (зөвхөн админд)")
 async def resync(interaction: discord.Interaction):
