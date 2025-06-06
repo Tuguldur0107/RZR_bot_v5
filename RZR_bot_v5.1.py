@@ -189,33 +189,34 @@ def get_team_user_ids(team_number):  # 👈 энд зөө
         return teams[team_number - 1]
     return []
 
-
-
 def clean_nickname(nick):
     if not nick:
         return ""
 
-    # Зөвхөн ашиглагдах emoji
     emojis = ["👑", "💸", "💰", "⚫️"]
-
-    # Tier-үүд
     tiers = [
         "4-3", "4-2", "4-1",
         "3-3", "3-2", "3-1",
         "2-3", "2-2", "2-1"
     ]
 
-    # Бүх emoji-г хаана ч байсан арилгана
+    # Emoji + Tier | гэсэн бүтэц бүх давхардааг устгана
     for emoji in emojis:
-        nick = re.sub(rf"{re.escape(emoji)}\s*", "", nick)
+        for tier in tiers:
+            pattern = re.compile(rf"{re.escape(emoji)}\s*{re.escape(tier)}\s*\|\s*")
+            nick = pattern.sub("", nick)
 
-    # Бүх tier prefix-үүдийг арилгана
+    # Дангаар emoji үлдсэн бол устгана
+    for emoji in emojis:
+        pattern = re.compile(rf"{re.escape(emoji)}(\s*\|\s*)?")
+        nick = pattern.sub("", nick)
+
+    # Дангаар tier үлдсэн бол устгана
     for tier in tiers:
-        nick = re.sub(rf"{re.escape(tier)}\s*\|\s*", "", nick)
+        pattern = re.compile(rf"{re.escape(tier)}\s*\|\s*")
+        nick = pattern.sub("", nick)
 
     return nick.strip()
-
-
 
 def tier_emoji(tier):
     return {
@@ -1535,7 +1536,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         # ✅ Нэр шинэчлэх: давхар emoji + tier устгаж, шинээр онооно
         emoji = tier_emoji(tier)
         clean_name = clean_nickname(member.display_name)
-        new_nick = f"{emoji} | {clean_name}"
+        new_nick = f"{emoji} {tier} | {clean_name}"
 
         try:
             await member.edit(nick=new_nick)
