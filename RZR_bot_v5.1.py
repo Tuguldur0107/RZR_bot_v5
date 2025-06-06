@@ -3,14 +3,12 @@ from discord import app_commands
 from discord.ext import commands
 import json
 import os
-import random
 import asyncio
 from datetime import datetime, timezone, timedelta
 import base64
 import requests
 from keep_alive import keep_alive
 import re
-
 
 # ✅ Токенуудаа энд тодорхойлно
 OPENAI_API_KEY = os.getenv("GPT_TOKEN")
@@ -223,15 +221,25 @@ def save_shields(data):
         json.dump(data, f, indent=4)
 
 # 🧠 Tier + Score-г тооцоолох
+TIER_POINTS = {
+    "4-3": 0,
+    "4-2": 5,
+    "4-1": 10,
+    "3-3": 15,
+    "3-2": 20,
+    "3-1": 25,
+    "2-3": 30,
+    "2-2": 35,
+    "2-1": 40,
+    "1-3": 45,
+    "1-2": 50,
+    "1-1": 55,
+}
+
 def tier_score(data):
     tier = data.get("tier", "4-3")
     score = data.get("score", 0)
-    tier_map = {
-        "4-3": 0, "4-2": 1, "4-1": 2,
-        "3-3": 3, "3-2": 4, "3-1": 5,
-        "2-3": 6, "2-2": 7, "2-1": 8,
-    }
-    return tier_map.get(tier, 0) * 10 + score
+    return TIER_POINTS.get(tier, 0) + score
 
 # 🐍 Snake хуваарилалт
 def assign_snake(scores, team_count, players_per_team):
@@ -261,8 +269,6 @@ def calc_diff(teams):
     totals = [sum(t) for t in teams]
     return max(totals) - min(totals)
 
-import requests
-import json
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
     url = "https://api.openai.com/v1/chat/completions"
@@ -275,34 +281,33 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 {team_count} багт {players_per_team * team_count} тоглогчийг онооны дагуу тэнцвэртэй хувиарла.
 Тоглогчид: {player_scores}
 Баг бүрт яг {players_per_team} хүн орсон байх ёстой.
-Багуудын онооны нийт зөрүүг хамгийн бага байхаар тооц.
-
+Багуудын онооны нийт зөрүү хамгийн бага байх ёстой.
 Зөвхөн ийм бүтэцтэй JSON буцаа:
-{{ "teams": [[123,456],[789,101],...] }}
-    """.strip()
+{{"teams": [[123,456],[789,101]]}}
+""".strip()
 
     data = {
         "model": "gpt-4o",
         "messages": [
-            {"role": "system", "content": "Чи JSON форматтай зөв хариу өгдөг туслах."},
+            {"role": "system", "content": "You're a match-making assistant that balances players."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.2
     }
 
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+
+    content = response.json()["choices"][0]["message"]["content"]
+    print("📥 GPT response content:\n", content)
+
     try:
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
+        return parsed.get("teams", [])
+    except json.JSONDecodeError as e:
+        print("❌ GPT JSON parse алдаа:", e)
+        raise
 
-        # ✅ бүтэц зөв эсэхийг шалга
-        if not isinstance(parsed, dict) or "teams" not in parsed:
-            raise ValueError("GPT хариултад 'teams' алга.")
-        return parsed["teams"]
-
-    except Exception as e:
-        raise RuntimeError(f"GPT fallback: {e}")
 
 async def github_auto_commit():
     while True:
@@ -642,7 +647,7 @@ async def addme(interaction: discord.Interaction):
         await interaction.response.send_message("⏰ Бүртгэлийн хугацаа дууссан тул оролцох боломжгүй.", ephemeral=True)
         return
 
-    # ❌ Хэрвээ тэмцээн эхэлсэн (make_team_go эсвэл gpt_go хийгдсэн) бол бүртгэхгүй
+    # ❌ Хэрвээ тэмцээн эхэлсэн бол бүртгэхгүй
     if TEAM_SETUP.get("teams") and any(len(team) > 0 for team in TEAM_SETUP["teams"]):
         await interaction.response.send_message("🚫 Тэмцээн аль хэдийн эхэлсэн тул бүртгэх боломжгүй.", ephemeral=True)
         return
@@ -653,7 +658,11 @@ async def addme(interaction: discord.Interaction):
         return
 
     TEAM_SETUP["player_ids"].append(user_id)
-    await interaction.response.send_message(f"✅ {interaction.user.mention} тоглоомд бүртгэгдлээ!")
+    total = len(TEAM_SETUP.get("player_ids", []))
+
+    await interaction.response.send_message(
+        f"✅ {interaction.user.mention} тоглоомд бүртгэгдлээ! (Нийт: **{total}** тоглогч)"
+    )
 
 @bot.tree.command(name="make_team_go", description="Хамгийн тэнцвэртэй хувилбараар баг хуваарилна")
 async def make_team_go(interaction: discord.Interaction):
@@ -673,12 +682,15 @@ async def make_team_go(interaction: discord.Interaction):
     total_slots = team_count * players_per_team
 
     if len(player_ids) < total_slots:
-        await interaction.followup.send(f"⚠️ {team_count} баг бүрдэхийн тулд нийт {total_slots} тоглогч бүртгэгдэх ёстой, одоогоор {len(player_ids)} байна.")
+        await interaction.followup.send(
+            f"⚠️ {team_count} баг бүрдэхийн тулд нийт {total_slots} тоглогч бүртгэгдэх ёстой, одоогоор {len(player_ids)} байна."
+        )
         return
 
     scores = load_scores()
     player_scores = []
     uid_map = {}
+
     for uid in player_ids:
         data = scores.get(str(uid), {})
         ts = tier_score(data)
@@ -692,6 +704,7 @@ async def make_team_go(interaction: discord.Interaction):
 
     final_teams = [[] for _ in range(team_count)]
     used_uids = set()
+
     for i, team in enumerate(best_team_scores):
         for score in team:
             for uid in uid_map[score]:
@@ -709,22 +722,28 @@ async def make_team_go(interaction: discord.Interaction):
 
     for i, team in enumerate(final_teams):
         emoji = team_emojis[i % len(team_emojis)]
-        total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
-        msg_lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
+        team_total = 0
+        team_lines = []
+
         for uid in team:
             data = scores.get(str(uid), {})
-            tier = data.get("tier", "?")
-            score = data.get("score", 0)
-            diff = f"{score:+}" if score else "+0"
-            msg_lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
+            member = guild.get_member(uid)
+            if not member:
+                continue
 
+            total = tier_score(data)
+            team_total += total
+            team_lines.append(f"• {member.mention} — **{total} оноо**")
+
+        msg_lines.append(f"\n{emoji} **Team {i + 1}** (нийт оноо: `{team_total}`):\n" + "\n".join(team_lines))
+
+    # ⚠️ Багт орж амжаагүй тоглогчид
     left_out = [uid for uid in player_ids if uid not in used_uids]
     if left_out:
         mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
         msg_lines.append(f"\n⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n• {mentions}")
 
     await interaction.followup.send("\n".join(msg_lines))
-
 
 @bot.tree.command(name="gpt_go", description="GPT-ээр онооны баланс хийж баг хуваарилна")
 async def gpt_go(interaction: discord.Interaction):
@@ -768,17 +787,25 @@ async def gpt_go(interaction: discord.Interaction):
     team_emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
 
     lines = [f"🤖 **GPT-ээр хуваарилсан багууд:**"]
+
     for i, team in enumerate(teams):
         emoji = team_emojis[i % len(team_emojis)]
-        total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
-        lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
+        team_total = 0
+        team_lines = []
+
         for uid in team:
             data = scores.get(str(uid), {})
-            tier = data.get("tier", "?")
-            score = data.get("score", 0)
-            diff = f"{score:+}" if score else "+0"
-            lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
+            member = guild.get_member(uid)
+            if not member:
+                continue
 
+            total = tier_score(data)
+            team_total += total
+            team_lines.append(f"• {member.mention} — **{total} оноо**")
+
+        lines.append(f"\n{emoji} **Team {i + 1}** (нийт оноо: `{team_total}`):\n" + "\n".join(team_lines))
+
+    # ⚠️ Багт орж амжаагүй тоглогчид
     left_out = [uid for uid in TEAM_SETUP["player_ids"] if uid not in used_uids]
     if left_out:
         mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
