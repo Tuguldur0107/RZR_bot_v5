@@ -296,13 +296,15 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 """.strip()
 
     data = {
-        "model": "gpt-4o",  # эсвэл "gpt-3.5-turbo" болгох
+        "model": "gpt-3.5-turbo",
         "messages": [
             {"role": "system", "content": "You're a helpful assistant that balances teams."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.0
+        "temperature": 0.0,
+        "store": True  # ✅ Энэ мөрийг нэм!
     }
+
 
     print("📡 GPT-д хүсэлт илгээж байна...")
 
