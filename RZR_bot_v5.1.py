@@ -271,9 +271,7 @@ def calc_diff(teams):
 
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
-    import requests
-    import json
-
+    print(f"🔑 OPENAI_API_KEY: {OPENAI_API_KEY}")
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -292,7 +290,7 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     data = {
         "model": "gpt-4o",
         "messages": [
-            {"role": "system", "content": "You're a match-making assistant that balances players."},
+            {"role": "system", "content": "You're a helpful assistant that balances teams."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.0
@@ -316,9 +314,15 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 
     try:
         parsed = json.loads(content)
-        return parsed.get("teams", [])
+        teams = parsed.get("teams", [])
+        if not isinstance(teams, list) or not all(isinstance(team, list) for team in teams):
+            raise ValueError("⚠️ GPT JSON бүтэц буруу байна: 'teams' нь list[list[int]] биш.")
+        return teams
     except json.JSONDecodeError as e:
         print("❌ GPT JSON parse алдаа:", e)
+        raise
+    except Exception as e:
+        print("❌ GPT JSON бүтэц алдаа:", e)
         raise
 
 def test_call_gpt_balance_api():
