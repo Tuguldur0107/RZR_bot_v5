@@ -278,7 +278,6 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     if not OPENAI_API_KEY:
         raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна.")
 
-    # 🧠 Prompt үүсгэх
     prompt = f"""
 {team_count} багт {players_per_team * team_count} тоглогчийг онооны дагуу тэнцвэртэй хувиарла.
 Тоглогчид: {player_scores}
@@ -291,25 +290,34 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     print("📡 GPT-д хүсэлт илгээж байна...")
 
     try:
-        # 🧠 GPT-ээс тэнцвэртэй багийн JSON хүсэх
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model="gpt-4o",
-            input=prompt,
-            text={
-                "type": "text"
-            },
-            store=True,  # ✅ Logs дээр харагдуулах
-            temperature=0.0
+            messages=[
+                {"role": "system", "content": "You're a helpful assistant that balances teams."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.0,
+            max_tokens=1024,
+            seed=42,
+            stream=False,
+            n=1,
+            logprobs=False,
+            user="rzr_balance_bot",
+            tool_choice="none",
+            logit_bias={},
+            response_format="text",
+            # ✅ `store=True` тохиргоо log-д үзүүлэх зорилготой (1.3.5+ дэмждэг)
+            store=True  
         )
     except Exception as e:
-        print("❌ GPT API responses.create алдаа:", e)
+        print("❌ GPT API chat.completions.create алдаа:", e)
         raise
 
     try:
-        content = response.output.text
+        content = response.choices[0].message.content
         print("📥 GPT response content:\n", content)
     except Exception as e:
-        print("❌ GPT output structure алдаа:", e)
+        print("❌ GPT response structure алдаа:", e)
         raise
 
     try:
@@ -324,6 +332,7 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     except Exception as e:
         print("❌ GPT JSON бүтэц алдаа:", e)
         raise
+
 
 def test_call_gpt_balance_api():
     team_count = 2
