@@ -304,9 +304,10 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
             logprobs=False,
             user="rzr_balance_bot",
             logit_bias={},
-            response_format="text",
+            response_format={ "type": "json_object" },   # <<----- ЭНД INGESEN!!
             store=True
         )
+        
     except Exception as e:
         print("❌ GPT API chat.completions.create алдаа:", e)
         raise
