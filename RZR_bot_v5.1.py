@@ -774,12 +774,15 @@ async def gpt_go(interaction: discord.Interaction):
         player_scores = sorted(player_scores, key=lambda x: x["score"], reverse=True)[:total_slots]
         player_ids = [p["id"] for p in player_scores]
 
-    # ✅ GPT-р хувиарлах
+    # 🧠 GPT API-р хуваарилах
     try:
         teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
     except Exception as e:
-        print(f"❌ GPT fallback: {e}")
-        await make_team_go(interaction)
+        print("❌ GPT API error:", e)
+        await interaction.followup.send(
+            "⚠️ GPT-ээр баг хуваарилах үед алдаа гарлаа. Түр зуурын асуудал байж болзошгүй.\n"
+            "⏳ Дараа дахин оролдоно уу эсвэл `/make_team_go` командыг ашиглаарай."
+        )
         return
 
     TEAM_SETUP["teams"] = teams
@@ -787,25 +790,17 @@ async def gpt_go(interaction: discord.Interaction):
     team_emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
 
     lines = [f"🤖 **GPT-ээр хуваарилсан багууд:**"]
-
     for i, team in enumerate(teams):
         emoji = team_emojis[i % len(team_emojis)]
-        team_total = 0
-        team_lines = []
-
+        total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
+        lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
         for uid in team:
             data = scores.get(str(uid), {})
-            member = guild.get_member(uid)
-            if not member:
-                continue
+            tier = data.get("tier", "?")
+            score = data.get("score", 0)
+            diff = f"{score:+}" if score else "+0"
+            lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
 
-            total = tier_score(data)
-            team_total += total
-            team_lines.append(f"• {member.mention} — **{total} оноо**")
-
-        lines.append(f"\n{emoji} **Team {i + 1}** (нийт оноо: `{team_total}`):\n" + "\n".join(team_lines))
-
-    # ⚠️ Багт орж амжаагүй тоглогчид
     left_out = [uid for uid in TEAM_SETUP["player_ids"] if uid not in used_uids]
     if left_out:
         mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
