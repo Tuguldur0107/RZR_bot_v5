@@ -613,8 +613,17 @@ async def addme(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.", ephemeral=True)
         return
 
-    # ❌ Хэрвээ тэмцээн аль хэдийн эхэлсэн (make_team_go эсвэл gpt_go хийгдсэн) бол бүртгэхгүй
-    if TEAM_SETUP.get("teams") and any(TEAM_SETUP["teams"]):
+    now = datetime.now(timezone.utc)
+    start_time = GAME_SESSION.get("start_time")
+    last_win_time = GAME_SESSION.get("last_win_time")
+
+    # ❌ make_team хийгдсэнээс хойш 5 минут өнгөрсөн бол бүртгэхгүй
+    if start_time and (now - start_time).total_seconds() > 300:
+        await interaction.response.send_message("⏰ Бүртгэлийн хугацаа дууссан тул оролцох боломжгүй.", ephemeral=True)
+        return
+
+    # ❌ Хэрвээ тэмцээн эхэлсэн (make_team_go эсвэл gpt_go хийгдсэн) бол бүртгэхгүй
+    if TEAM_SETUP.get("teams") and any(len(team) > 0 for team in TEAM_SETUP["teams"]):
         await interaction.response.send_message("🚫 Тэмцээн аль хэдийн эхэлсэн тул бүртгэх боломжгүй.", ephemeral=True)
         return
 
