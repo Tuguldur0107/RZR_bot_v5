@@ -215,6 +215,45 @@ def save_shields(data):
     with open(SHIELD_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+# 🧠 Tier + Score-г тооцоолох
+def tier_score(data):
+    tier = data.get("tier", "4-3")
+    score = data.get("score", 0)
+    tier_map = {
+        "4-3": 0, "4-2": 1, "4-1": 2,
+        "3-3": 3, "3-2": 4, "3-1": 5,
+        "2-3": 6, "2-2": 7, "2-1": 8,
+    }
+    return tier_map.get(tier, 0) * 10 + score
+
+# 🐍 Snake хуваарилалт
+def assign_snake(scores, team_count, players_per_team):
+    buckets = [[] for _ in range(players_per_team)]
+    for i, s in enumerate(scores):
+        buckets[i % players_per_team].append(s)
+    teams = [[] for _ in range(team_count)]
+    for idx, bucket in enumerate(buckets):
+        direction = 1 if idx % 2 == 0 else -1
+        for i, s in enumerate(bucket):
+            t = i if direction == 1 else (team_count - 1 - i)
+            teams[t % team_count].append(s)
+    return teams
+
+# ⚖️ Greedy хувилбар
+def assign_greedy(scores, team_count, players_per_team):
+    teams = [[] for _ in range(team_count)]
+    team_totals = [0] * team_count
+    for s in scores:
+        idx = min(range(team_count), key=lambda i: (len(teams[i]) >= players_per_team, team_totals[i]))
+        teams[idx].append(s)
+        team_totals[idx] += s
+    return teams
+
+# ➖ Зөрүү тооцох
+def calc_diff(teams):
+    totals = [sum(t) for t in teams]
+    return max(totals) - min(totals)
+
 async def github_auto_commit():
     while True:
         await asyncio.sleep(3600)  # 60 минут
@@ -560,7 +599,7 @@ async def addme(interaction: discord.Interaction):
     else:
         await interaction.followup.send("⚠️ Та аль хэдийн бүртгэгдсэн байна.", ephemeral=True)
 
-@bot.tree.command(name="make_team_go", description="Тэнцвэртэй баг хуваарилна")
+@bot.tree.command(name="make_team_go", description="Хамгийн тэнцвэртэй хувилбараар баг хуваарилна")
 async def make_team_go(interaction: discord.Interaction):
     try:
         await interaction.response.defer(thinking=True)
@@ -583,49 +622,45 @@ async def make_team_go(interaction: discord.Interaction):
 
     scores = load_scores()
 
-    def tier_score(data):
-        tier = data.get("tier", "4-3")
-        score = data.get("score", 0)
-        tier_map = {
-            "4-3": 0, "4-2": 1, "4-1": 2,
-            "3-3": 3, "3-2": 4, "3-1": 5,
-            "2-3": 6, "2-2": 7, "2-1": 8,
-        }
-        return tier_map.get(tier, 0) * 10 + score
-
-    # 🧠 Тоглогчдыг TierScore-р эрэмбэлж bucket-д хуваана
-    players = []
+    # 🎯 Оноог цуглуулна
+    player_scores = []
+    uid_map = {}
     for uid in player_ids:
         data = scores.get(str(uid), {})
-        member = guild.get_member(uid)
-        if member:
-            players.append((uid, member.display_name, tier_score(data)))
+        ts = tier_score(data)
+        player_scores.append(ts)
+        uid_map[ts] = uid_map.get(ts, []) + [uid]  # duplicate score support
 
-    players.sort(key=lambda x: x[2], reverse=True)
+    sorted_scores = sorted(player_scores, reverse=True)
 
-    # 🪣 players_per_team тооны bucket
-    buckets = [[] for _ in range(players_per_team)]
-    for i, p in enumerate(players):
-        buckets[i % players_per_team].append(p)
+    # 🧪 Хоёр аргаар хуваарилалт хийнэ
+    snake_teams = assign_snake(sorted_scores, team_count, players_per_team)
+    greedy_teams = assign_greedy(sorted_scores, team_count, players_per_team)
 
-    # ⚖️ snake-style хуваарилалт
-    teams = [[] for _ in range(team_count)]
-    for idx, bucket in enumerate(buckets):
-        random.shuffle(bucket)
-        direction = 1 if idx % 2 == 0 else -1
-        for i, player in enumerate(bucket):
-            t = i if direction == 1 else (team_count - 1 - i)
-            teams[t % team_count].append(player)
+    # ⚖️ Аль зөрүү бага вэ?
+    best_team_scores = greedy_teams if calc_diff(greedy_teams) <= calc_diff(snake_teams) else snake_teams
 
-    TEAM_SETUP["teams"] = [
-        [uid for uid, _, _ in team] for team in teams
-    ]
+    # 🧩 Оноонд тулгуурлан UID-г багуудад онооно
+    final_teams = [[] for _ in range(team_count)]
+    used_uids = set()
+    for i, team in enumerate(best_team_scores):
+        for score in team:
+            for uid in uid_map[score]:
+                if uid not in used_uids:
+                    final_teams[i].append(uid)
+                    used_uids.add(uid)
+                    break
 
-    # 📤 Output
-    msg = "📦 **Тэнцвэртэй багийн хуваарилалт:**\n"
-    for i, team in enumerate(teams, 1):
-        team_str = ", ".join(f"<@{uid}>" for uid, _, _ in team)
-        msg += f"**Team {i}:** {team_str}\n"
+    # ✅ хадгална
+    TEAM_SETUP["teams"] = final_teams
+
+    # 📤 Харуулах
+    msg = "🤖 **Хамгийн тэнцвэртэй хувилбараар хуваарилсан багууд:**\n"
+    for i, team in enumerate(final_teams, 1):
+        members = [guild.get_member(uid) for uid in team]
+        names = ", ".join(f"<@{m.id}>" if m else str(uid) for uid, m in zip(team, members))
+        total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
+        msg += f"**Team {i}** (оноо: {total}): {names}\n"
 
     await interaction.followup.send(msg)
 
@@ -1481,8 +1516,8 @@ async def on_message(message):
     await bot.process_commands(message)
 
 async def main():
-    from copy_from_github_to_volume import copy_files_from_app_to_volume
-    copy_files_from_app_to_volume()
+    #from copy_from_github_to_volume import copy_files_from_app_to_volume
+    #copy_files_from_app_to_volume()
 
     keep_alive()
     await bot.start(os.environ["TOKEN"])       # ⚠️ bot.run биш
