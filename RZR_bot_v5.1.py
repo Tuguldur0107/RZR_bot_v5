@@ -261,6 +261,9 @@ def calc_diff(teams):
     totals = [sum(t) for t in teams]
     return max(totals) - min(totals)
 
+import requests
+import json
+
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
@@ -269,25 +272,37 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     }
 
     prompt = f"""
-    {team_count} багт дараах тоглогчдыг оноогоор тэнцвэртэй хуваа.
-    Баг бүрт {players_per_team} тоглогч байна. Зөрүү багатай багууд үүсгэ.
-    Тоглогчид: {player_scores}
-    Зөвхөн ийм бүтэцтэй JSON өг:
-    {{
-        "teams": [[123,456],[789,101]]
-    }}
-    """
+{team_count} багт {players_per_team * team_count} тоглогчийг онооны дагуу тэнцвэртэй хувиарла.
+Тоглогчид: {player_scores}
+Баг бүрт яг {players_per_team} хүн орсон байх ёстой.
+Багуудын онооны нийт зөрүүг хамгийн бага байхаар тооц.
+
+Зөвхөн ийм бүтэцтэй JSON буцаа:
+{{ "teams": [[123,456],[789,101],...] }}
+    """.strip()
 
     data = {
         "model": "gpt-4o",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3
+        "messages": [
+            {"role": "system", "content": "Чи JSON форматтай зөв хариу өгдөг туслах."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.2
     }
 
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()
-    content = response.json()["choices"][0]["message"]["content"]
-    return json.loads(content)["teams"]
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        parsed = json.loads(content)
+
+        # ✅ бүтэц зөв эсэхийг шалга
+        if not isinstance(parsed, dict) or "teams" not in parsed:
+            raise ValueError("GPT хариултад 'teams' алга.")
+        return parsed["teams"]
+
+    except Exception as e:
+        raise RuntimeError(f"GPT fallback: {e}")
 
 async def github_auto_commit():
     while True:
@@ -657,31 +672,24 @@ async def make_team_go(interaction: discord.Interaction):
     players_per_team = TEAM_SETUP["players_per_team"]
     total_slots = team_count * players_per_team
 
-    if len(player_ids) != total_slots:
-        await interaction.followup.send(f"⚠️ {total_slots} тоглогч бүртгүүлэх ёстой, одоогоор {len(player_ids)} байна.")
+    if len(player_ids) < total_slots:
+        await interaction.followup.send(f"⚠️ {team_count} баг бүрдэхийн тулд нийт {total_slots} тоглогч бүртгэгдэх ёстой, одоогоор {len(player_ids)} байна.")
         return
 
     scores = load_scores()
-
-    # 🎯 Оноог цуглуулна
     player_scores = []
     uid_map = {}
     for uid in player_ids:
         data = scores.get(str(uid), {})
         ts = tier_score(data)
         player_scores.append(ts)
-        uid_map[ts] = uid_map.get(ts, []) + [uid]  # duplicate score support
+        uid_map[ts] = uid_map.get(ts, []) + [uid]
 
     sorted_scores = sorted(player_scores, reverse=True)
-
-    # 🧪 Хоёр аргаар хуваарилалт хийнэ
     snake_teams = assign_snake(sorted_scores, team_count, players_per_team)
     greedy_teams = assign_greedy(sorted_scores, team_count, players_per_team)
-
-    # ⚖️ Аль зөрүү бага вэ?
     best_team_scores = greedy_teams if calc_diff(greedy_teams) <= calc_diff(snake_teams) else snake_teams
 
-    # 🧩 Оноонд тулгуурлан UID-г багуудад онооно
     final_teams = [[] for _ in range(team_count)]
     used_uids = set()
     for i, team in enumerate(best_team_scores):
@@ -692,18 +700,31 @@ async def make_team_go(interaction: discord.Interaction):
                     used_uids.add(uid)
                     break
 
-    # ✅ хадгална
     TEAM_SETUP["teams"] = final_teams
+    team_emojis = ["🏆", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
 
-    # 📤 Харуулах
-    msg = "🤖 **Хамгийн тэнцвэртэй хувилбараар хуваарилсан багууд:**\n"
-    for i, team in enumerate(final_teams, 1):
-        members = [guild.get_member(uid) for uid in team]
-        names = ", ".join(f"<@{m.id}>" if m else str(uid) for uid, m in zip(team, members))
+    msg_lines = [
+        f"🤖 **{len(player_ids)} тоглогчийг {team_count} багт хувиарлалаа (нэг багт {players_per_team} хүн):**"
+    ]
+
+    for i, team in enumerate(final_teams):
+        emoji = team_emojis[i % len(team_emojis)]
         total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
-        msg += f"**Team {i}** (оноо: {total}): {names}\n"
+        msg_lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
+        for uid in team:
+            data = scores.get(str(uid), {})
+            tier = data.get("tier", "?")
+            score = data.get("score", 0)
+            diff = f"{score:+}" if score else "+0"
+            msg_lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
 
-    await interaction.followup.send(msg)
+    left_out = [uid for uid in player_ids if uid not in used_uids]
+    if left_out:
+        mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
+        msg_lines.append(f"\n⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n• {mentions}")
+
+    await interaction.followup.send("\n".join(msg_lines))
+
 
 @bot.tree.command(name="gpt_go", description="GPT-ээр онооны баланс хийж баг хуваарилна")
 async def gpt_go(interaction: discord.Interaction):
@@ -712,60 +733,58 @@ async def gpt_go(interaction: discord.Interaction):
     except discord.errors.InteractionResponded:
         return
 
-    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
+    if interaction.user.id != TEAM_SETUP["initiator_id"]:
         await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.")
         return
 
     guild = interaction.guild
-    player_ids = TEAM_SETUP["player_ids"]
     team_count = TEAM_SETUP["team_count"]
     players_per_team = TEAM_SETUP["players_per_team"]
     total_slots = team_count * players_per_team
-
-    if len(player_ids) != total_slots:
-        await interaction.followup.send(f"⚠️ {total_slots} тоглогч бүртгэгдэх ёстой, одоогоор {len(player_ids)} байна.")
-        return
+    player_ids = TEAM_SETUP["player_ids"]
 
     scores = load_scores()
     player_scores = []
-    uid_map = {}
+
     for uid in player_ids:
         data = scores.get(str(uid), {})
         ts = tier_score(data)
         player_scores.append({"id": uid, "score": ts})
-        uid_map[ts] = uid_map.get(ts, []) + [uid]
 
-    # 🧠 GPT ашиглаж хуваарилалт хийх
+    if len(player_scores) > total_slots:
+        player_scores = sorted(player_scores, key=lambda x: x["score"], reverse=True)[:total_slots]
+        player_ids = [p["id"] for p in player_scores]
+
+    # ✅ GPT-р хувиарлах
     try:
         teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
-        method_used = "GPT"
     except Exception as e:
         print(f"❌ GPT fallback: {e}")
-        sorted_scores = sorted([p["score"] for p in player_scores], reverse=True)
-        fallback = assign_greedy(sorted_scores, team_count, players_per_team)
-
-        # онооноос ID-г match хийх
-        used = set()
-        teams = [[] for _ in range(team_count)]
-        for i, team in enumerate(fallback):
-            for score in team:
-                for uid in uid_map.get(score, []):
-                    if uid not in used:
-                        teams[i].append(uid)
-                        used.add(uid)
-                        break
-        method_used = "greedy fallback"
+        await make_team_go(interaction)
+        return
 
     TEAM_SETUP["teams"] = teams
+    used_uids = set(uid for team in teams for uid in team)
+    team_emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
 
-    msg = f"📦 **GPT хуваарилалт ({method_used})**\n"
-    for i, team in enumerate(teams, 1):
-        members = [guild.get_member(uid) for uid in team]
-        names = ", ".join(f"<@{m.id}>" if m else f"<@{uid}>" for uid, m in zip(team, members))
+    lines = [f"🤖 **GPT-ээр хуваарилсан багууд:**"]
+    for i, team in enumerate(teams):
+        emoji = team_emojis[i % len(team_emojis)]
         total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
-        msg += f"**Team {i}** (оноо: {total}): {names}\n"
+        lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
+        for uid in team:
+            data = scores.get(str(uid), {})
+            tier = data.get("tier", "?")
+            score = data.get("score", 0)
+            diff = f"{score:+}" if score else "+0"
+            lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
 
-    await interaction.followup.send(msg)
+    left_out = [uid for uid in TEAM_SETUP["player_ids"] if uid not in used_uids]
+    if left_out:
+        mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
+        lines.append(f"\n⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n• {mentions}")
+
+    await interaction.followup.send("\n".join(lines))
 
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
 @app_commands.describe(winning_team="Хожсон багийн дугаар", losing_team="Хожигдсон багийн дугаар")
