@@ -307,7 +307,7 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
             response_format={ "type": "json_object" },   # <<----- ЭНД INGESEN!!
             store=True
         )
-        
+
     except Exception as e:
         print("❌ GPT API chat.completions.create алдаа:", e)
         raise
@@ -769,17 +769,12 @@ async def make_team_go(interaction: discord.Interaction):
 
         for uid in team:
             data = scores.get(str(uid), {})
-            member = guild.get_member(uid)
-            if not member:
-                continue
-
             total = tier_score(data)
             team_total += total
-            team_lines.append(f"• {member.mention} — **{total} оноо**")
+            team_lines.append(f"- <@{uid}> (тоглогчын оноо: {total})")
 
         msg_lines.append(f"\n{emoji} **Team {i + 1}** (нийт оноо: `{team_total}`):\n" + "\n".join(team_lines))
 
-    # ⚠️ Багт орж амжаагүй тоглогчид
     left_out = [uid for uid in player_ids if uid not in used_uids]
     if left_out:
         mentions = "\n• ".join(f"<@{uid}>" for uid in left_out)
@@ -831,17 +826,15 @@ async def gpt_go(interaction: discord.Interaction):
     used_uids = set(uid for team in teams for uid in team)
     team_emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
 
-    lines = [f"🤖 **GPT-ээр хуваарилсан багууд:**"]
+    lines = ["🤖 **ChatGPT-ээр хуваарилсан багууд:**"]
     for i, team in enumerate(teams):
         emoji = team_emojis[i % len(team_emojis)]
         total = sum(tier_score(scores.get(str(uid), {})) for uid in team)
         lines.append(f"\n{emoji} **Team {i+1}** (нийт оноо: `{total}`):")
         for uid in team:
             data = scores.get(str(uid), {})
-            tier = data.get("tier", "?")
-            score = data.get("score", 0)
-            diff = f"{score:+}" if score else "+0"
-            lines.append(f"• <@{uid}> `{tier} ({score} / {diff})`")
+            total_score = tier_score(data)
+            lines.append(f"- <@{uid}> (тоглогчын оноо: {total_score})")
 
     left_out = [uid for uid in TEAM_SETUP["player_ids"] if uid not in used_uids]
     if left_out:
