@@ -1568,10 +1568,10 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         # ✅ Нэрийг төвлөрсөн функцээр шинэчилнэ
         await update_nicknames_for_users(interaction.guild, user_ids)
 
-        try:
-            await member.edit(nick=new_nick)
-        except Exception as e:
-            print(f"⚠️ Nickname өөрчлөх үед алдаа гарлаа: {e}")
+        #try:
+            #await member.edit(nick=new_nick)
+        #except Exception as e:
+            #print(f"⚠️ Nickname өөрчлөх үед алдаа гарлаа: {e}")
 
     # ✅ Хариу илгээнэ
     if updated:
@@ -1608,12 +1608,12 @@ async def resync(interaction: discord.Interaction):
 
 @bot.tree.command(name="backup_now", description="Датаг GitHub руу гараар хадгална (зөвхөн админд).")
 async def backup_now(interaction: discord.Interaction):
-    # ⚠️ Эхлээд эрх шалгана
+    # ⚠️ Админ эрх шалгана
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
 
-    # ✅ Дараа нь interaction acknowledge хийнэ
+    # ✅ Interaction acknowledge
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -1621,12 +1621,13 @@ async def backup_now(interaction: discord.Interaction):
         return
 
     try:
-        # 📦 GitHub commit-ууд
-        commit_to_github(SCORE_FILE, "manual backup: scores.json")
-        commit_to_github(SCORE_LOG_FILE, "manual backup: score_log.jsonl")
-        commit_to_github(LOG_FILE, "manual backup: match_log.json")
-        commit_to_github(DONATOR_FILE, "manual backup: donator.json")
-        commit_to_github(SHIELD_FILE, "manual backup: donate_shields.json")
+        # 📦 GitHub commit-уудыг дарааллаар хийнэ
+        await commit_to_github(SCORE_FILE, "manual backup: scores.json")
+        await commit_to_github(SCORE_LOG_FILE, "manual backup: score_log.jsonl")
+        await commit_to_github(LOG_FILE, "manual backup: match_log.json")
+        await commit_to_github(DONATOR_FILE, "manual backup: donator.json")
+        await commit_to_github(SHIELD_FILE, "manual backup: donate_shields.json")
+
         await interaction.followup.send("✅ Датаг GitHub руу амжилттай хадгаллаа.")
     except Exception as e:
         await interaction.followup.send(f"❌ Backup хийхэд алдаа гарлаа: {e}", ephemeral=True)
