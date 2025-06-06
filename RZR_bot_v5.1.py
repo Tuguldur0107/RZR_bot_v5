@@ -273,15 +273,11 @@ def calc_diff(teams):
 
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
-
-    print(f"🔑 OPENAI_API_KEY: {OPENAI_API_KEY}")
-    if not OPENAI_API_KEY:
-        raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна!")
-    
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
+        # "OpenAI-Project": "proj_..."  # ⛔️ Хэрэггүй, Personal account ашиглаж байвал энэ мөрийг устга
     }
 
     prompt = f"""
@@ -294,15 +290,13 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 """.strip()
 
     data = {
-        "model": "gpt-4o",
+        "model": "gpt-3.5-turbo",
         "messages": [
             {"role": "system", "content": "You're a helpful assistant that balances teams."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.0
     }
-
-    print("📡 GPT-д хүсэлт илгээж байна...")
 
     try:
         response = requests.post(url, headers=headers, json=data)
@@ -313,7 +307,6 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
 
     try:
         content = response.json()["choices"][0]["message"]["content"]
-        print("📥 GPT response content:\n", content)
     except Exception as e:
         print("❌ GPT response structure алдаа:", e)
         raise
@@ -330,6 +323,7 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
     except Exception as e:
         print("❌ GPT JSON бүтэц алдаа:", e)
         raise
+
 
 def test_call_gpt_balance_api():
     team_count = 2
