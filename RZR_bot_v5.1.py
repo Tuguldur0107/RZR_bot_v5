@@ -193,30 +193,10 @@ def clean_nickname(nick):
     if not nick:
         return ""
 
-    emojis = ["👑", "💸", "💰", "⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️","⚫️"]
-    tiers = [
-        "4-3", "4-2", "4-1",
-        "3-3", "3-2", "3-1",
-        "2-3", "2-2", "2-1"
-    ]
+    if "|" in nick:
+        nick = nick.split("|", 1)[1].strip()
 
-    # Emoji + Tier | гэсэн бүтэц бүх давхардааг устгана
-    for emoji in emojis:
-        for tier in tiers:
-            pattern = re.compile(rf"{re.escape(emoji)}\s*{re.escape(tier)}\s*\|\s*")
-            nick = pattern.sub("", nick)
-
-    # ✅ Давхардсан emoji-г дангаар нь устгана
-    for emoji in emojis:
-        pattern = re.compile(rf"(?:{re.escape(emoji)}\s*)+")
-        nick = pattern.sub("", nick)
-
-    # ✅ Давхардсан tier | -г дангаар нь устгана
-    for tier in tiers:
-        pattern = re.compile(rf"{re.escape(tier)}\s*\|\s*")
-        nick = pattern.sub("", nick)
-
-    return nick.strip()
+    return nick
 
 def tier_emoji(tier):
     return {
@@ -345,8 +325,7 @@ async def update_nicknames_for_users(guild, user_ids: list):
         member = guild.get_member(int(user_id))
         if member:
             tier = data.get("tier", get_tier())
-            base_nick = member.nick or member.name
-            base_nick = clean_nickname(base_nick)
+            base_nick = clean_nickname(member.display_name)  # ✅ display_name + clean
 
             donor_data = donors.get(str(user_id), {})
             emoji = get_donator_emoji(donor_data) or tier_emoji(tier)
@@ -363,6 +342,7 @@ async def update_nicknames_for_users(guild, user_ids: list):
                 print(f"⛔️ {member} nickname-г өөрчилж чадсангүй.")
             except Exception as e:
                 print(f"⚠️ {member} nickname-д алдаа гарлаа: {e}")
+
 
 # ⏱️ Session хугацаа дууссан эсэх шалгагч task
 async def session_timeout_checker():
@@ -824,7 +804,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         return
 
     team_count = TEAM_SETUP["team_count"]
-
     if not (1 <= winning_team <= team_count) or not (1 <= losing_team <= team_count):
         await interaction.followup.send("❌ Багийн дугаар буруу байна.")
         return
@@ -842,6 +821,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 
     winners, losers = [], []
 
+    # ✅ Хожсон багт оноо нэмэх
     for uid in winning_ids:
         uid_str = str(uid)
         member = guild.get_member(uid)
@@ -864,6 +844,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         if member:
             winners.append(member.mention)
 
+    # ✅ Хожигдсон багт оноо хасах
     for uid in losing_ids:
         uid_str = str(uid)
         member = guild.get_member(uid)
@@ -888,8 +869,11 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 
     save_scores(scores)
     save_shields(shields)
+
+    # ✅ Nickname-г centralized функцээр шинэчилнэ
     await update_nicknames_for_users(guild, changed_ids)
 
+    # ✅ Log файлд бүртгэнэ
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mode": "set_winner_team",
@@ -910,6 +894,7 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
 
+    # ✅ Сүүлчийн match-ийг хадгална
     last_entry = {
         "timestamp": log_entry["timestamp"],
         "mode": log_entry["mode"],
@@ -919,11 +904,11 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     with open(LAST_FILE, "w") as f:
         json.dump(last_entry, f, indent=2)
 
+    # ✅ Харуулах хариу
     await interaction.followup.send(f"🏆 Team {winning_team} оноо авлаа: ✅ +1\n{', '.join(winners)}")
     await interaction.followup.send(f"💔 Team {losing_team} оноо хасагдлаа: ❌ -1\n{', '.join(losers)}")
 
     GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)
-
 
 @bot.tree.command(name="change_player", description="Багт тоглогч солих")
 @app_commands.describe(from_member="Солигдох тоглогч", to_member="Шинэ тоглогч")
@@ -1029,7 +1014,7 @@ async def set_tier(interaction: discord.Interaction, member: discord.Member, new
     except discord.errors.InteractionResponded:
         print("❌ Interaction expired.")
         return
-        
+
     # ✅ зөвхөн админ эрхтэй хэрэглэгч ажиллуулна
     if not interaction.user.guild_permissions.administrator:
         await interaction.followup.send("❌ Энэ командыг зөвхөн админ хэрэглэгч ажиллуулж чадна.", ephemeral=True)
@@ -1051,23 +1036,8 @@ async def set_tier(interaction: discord.Interaction, member: discord.Member, new
 
     save_scores(scores)
 
-    # nickname шинэчлэх
-    try:
-        base_nick = member.nick or member.name
-        for prefix in TIER_ORDER:
-            if base_nick.startswith(f"{prefix} |"):
-                base_nick = base_nick[len(prefix)+2:].strip()
-        new_nick = f"{new_tier} | {base_nick}"
-        await member.edit(nick=new_nick)
-    except discord.Forbidden:
-        await interaction.followup.send(
-            "⚠️ Tier амжилттай солигдсон ч nickname өөрчилж чадсангүй (permission issue).",
-            ephemeral=True
-        )
-        return
-    except Exception as e:
-        await interaction.followup.send(f"⚠️ Алдаа гарлаа: {e}", ephemeral=True)
-        return
+    # ✅ nickname-г төвлөрсөн функцээр шинэчилнэ
+    await update_nicknames_for_users(interaction.guild, [user_id])
 
     await interaction.followup.send(f"✅ {member.mention}-ийн tier-г `{new_tier}` болголоо.")
 
@@ -1123,7 +1093,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     guild = interaction.guild
     changed_ids = []
 
-    # 🧠 шинэ глобал функц ашиглаж багийн гишүүдийг авна
     winning_ids = get_team_user_ids(winning_team)
     losing_ids = get_team_user_ids(losing_team)
 
@@ -1144,6 +1113,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+
         log_score_transaction(uid_str, +2, score, tier, "fountain win")
         changed_ids.append(uid)
 
@@ -1164,15 +1134,19 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
             "tier": tier,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
+
         log_score_transaction(uid_str, -2, score, tier, "fountain loss")
         changed_ids.append(uid)
 
     save_scores(scores)
+
+    # ✅ Нэр шинэчлэх төвлөрсөн функцээр
     await update_nicknames_for_users(guild, changed_ids)
 
     win_mentions = ", ".join([f"<@{uid}>" for uid in winning_ids])
     lose_mentions = ", ".join([f"<@{uid}>" for uid in losing_ids])
 
+    # ✅ Түүх хадгална
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mode": "fountain",
@@ -1193,6 +1167,7 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
     with open(LOG_FILE, "w") as f:
         json.dump(log, f, indent=2)
 
+    # ✅ Сүүлийн match хадгална
     last_entry = {
         "timestamp": log_entry["timestamp"],
         "mode": log_entry["mode"],
@@ -1207,7 +1182,6 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
         f"🏆 Хожсон баг (Team {winning_team}): {win_mentions} → **+2**\n"
         f"💔 Хожигдсон баг (Team {losing_team}): {lose_mentions} → **–2**"
     )
-
 
 @bot.tree.command(name="active_teams", description="Идэвхтэй багуудын жагсаалт")
 async def active_teams(interaction: discord.Interaction):
@@ -1533,10 +1507,8 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         log_score_transaction(uid_str, points, score, tier, "manual")
         updated.append(member)
 
-        # ✅ Нэр шинэчлэх: давхар emoji + tier устгаж, шинээр онооно
-        emoji = tier_emoji(tier)
-        clean_name = clean_nickname(member.display_name)
-        new_nick = f"{emoji} {tier} | {clean_name}"
+        # ✅ Нэрийг төвлөрсөн функцээр шинэчилнэ
+        await update_nicknames_for_users(interaction.guild, user_ids)
 
         try:
             await member.edit(nick=new_nick)
