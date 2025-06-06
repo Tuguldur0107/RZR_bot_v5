@@ -329,3 +329,13 @@
 {"timestamp": "2025-06-06T08:23:15.093086+00:00", "uid": "493969204467204099", "delta": -1, "total": -2, "tier": "4-2", "reason": "manual"}
 {"timestamp": "2025-06-06T08:40:06.337085+00:00", "uid": "493969204467204099", "delta": 1, "total": 0, "tier": "4-2", "reason": "manual"}
 {"timestamp": "2025-06-06T08:40:16.525326+00:00", "uid": "493969204467204099", "delta": -1, "total": -2, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:05.500408+00:00", "uid": "1150241155817144350", "delta": 1, "total": -1, "tier": "3-2", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:09.303808+00:00", "uid": "1088424182498459668", "delta": 1, "total": 3, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:16.073401+00:00", "uid": "762023843937779793", "delta": 1, "total": -2, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:18.195074+00:00", "uid": "1341467374875967561", "delta": 1, "total": 2, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:26.536157+00:00", "uid": "493969204467204099", "delta": 1, "total": 0, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:37.143101+00:00", "uid": "985468905332023347", "delta": -1, "total": 2, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:38.327737+00:00", "uid": "1288420999439585363", "delta": -1, "total": 0, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:39.723214+00:00", "uid": "1150807210104995921", "delta": -1, "total": -1, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:42.053363+00:00", "uid": "333279032781307905", "delta": -1, "total": -1, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-06T14:01:48.944663+00:00", "uid": "1164945032458010645", "delta": -1, "total": -3, "tier": "4-2", "reason": "manual"}
