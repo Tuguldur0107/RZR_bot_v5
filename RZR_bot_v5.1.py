@@ -362,11 +362,8 @@ def test_call_gpt_balance_api():
 async def github_auto_commit():
     while True:
         await asyncio.sleep(3600)  # 60 минут
-        commit_to_github(SCORE_FILE, "auto: scores.json")
-        commit_to_github(SCORE_LOG_FILE, "auto: score_log.jsonl")
-        commit_to_github(LOG_FILE, "auto: match_log.json")
-        commit_to_github(DONATOR_FILE, "auto: donator.json")
-        commit_to_github(SHIELD_FILE, "auto: donate_shields.json")
+        file_list = [SCORE_FILE, SCORE_LOG_FILE, LOG_FILE, DONATOR_FILE, SHIELD_FILE]
+        commit_to_github_multi(file_list, "auto: all log files")
 
 async def update_nicknames_for_users(guild, user_ids: list):
     scores = load_scores()
