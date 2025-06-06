@@ -271,6 +271,9 @@ def calc_diff(teams):
 
 
 def call_gpt_balance_api(team_count, players_per_team, player_scores):
+    import requests
+    import json
+
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -292,14 +295,24 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
             {"role": "system", "content": "You're a match-making assistant that balances players."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.2
+        "temperature": 0.0
     }
 
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()
+    print("📡 GPT-д хүсэлт илгээж байна...")
 
-    content = response.json()["choices"][0]["message"]["content"]
-    print("📥 GPT response content:\n", content)
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+    except Exception as e:
+        print("❌ GPT API холболтын алдаа:", e)
+        raise
+
+    try:
+        content = response.json()["choices"][0]["message"]["content"]
+        print("📥 GPT response content:\n", content)
+    except Exception as e:
+        print("❌ GPT response structure алдаа:", e)
+        raise
 
     try:
         parsed = json.loads(content)
@@ -308,6 +321,23 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
         print("❌ GPT JSON parse алдаа:", e)
         raise
 
+def test_call_gpt_balance_api():
+    team_count = 2
+    players_per_team = 3
+    player_scores = [
+        {"id": 1001, "score": 55},
+        {"id": 1002, "score": 48},
+        {"id": 1003, "score": 30},
+        {"id": 1004, "score": 35},
+        {"id": 1005, "score": 10},
+        {"id": 1006, "score": 5}
+    ]
+
+    try:
+        teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
+        print("✅ Teams received from GPT:", teams)
+    except Exception as e:
+        print("❌ Тест дээр алдаа гарлаа:", e)
 
 async def github_auto_commit():
     while True:
@@ -1654,4 +1684,5 @@ async def main():
 
 if __name__ == "__main__":
     print("🚀 Starting bot...")
+    test_call_gpt_balance_api()
     asyncio.run(main())
