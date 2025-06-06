@@ -156,34 +156,37 @@ async def should_deduct(uid: str, shields: dict) -> bool:
 def get_tier():
     return "4-1"  # default tier
 
-def commit_to_github(filename, message="update"):
+def commit_to_github_multi(file_list, message="update"):
     token = os.environ.get("GITHUB_TOKEN")
     repo = "Tuguldur0107/RZR_bot_v5"
     branch = "main"
 
-    # ⛔️ GitHub дээр path /mnt/data/... биш, зөвхөн filename байх ёстой
-    github_path = os.path.basename(filename)
+    headers = {"Authorization": f"token {token}"}
 
-    with open(filename, "rb") as f:
-        content = base64.b64encode(f.read()).decode("utf-8")
+    for filepath in file_list:
+        github_path = os.path.basename(filepath)
 
-    api_url = f"https://api.github.com/repos/{repo}/contents/{github_path}"
+        with open(filepath, "rb") as f:
+            content = base64.b64encode(f.read()).decode("utf-8")
 
-    res = requests.get(api_url, headers={"Authorization": f"token {token}"})
-    sha = res.json().get("sha")
+        api_url = f"https://api.github.com/repos/{repo}/contents/{github_path}"
 
-    data = {
-        "message": message,
-        "branch": branch,
-        "content": content,
-        "sha": sha
-    }
+        # 👉 sha авах
+        res = requests.get(api_url, headers=headers)
+        sha = res.json().get("sha")
 
-    r = requests.put(api_url, headers={"Authorization": f"token {token}"}, json=data)
-    if r.status_code in [200, 201]:
-        print(f"✅ {github_path} GitHub-д хадгалагдлаа.")
-    else:
-        print(f"❌ GitHub commit алдаа: {r.status_code}", r.text)
+        data = {
+            "message": message,
+            "branch": branch,
+            "content": content,
+            "sha": sha
+        }
+
+        r = requests.put(api_url, headers=headers, json=data)
+        if r.status_code in [200, 201]:
+            print(f"✅ {github_path} GitHub-д хадгалагдлаа.")
+        else:
+            print(f"❌ {github_path} commit алдаа: {r.status_code}", r.text)
     
 def get_team_user_ids(team_number):  # 👈 энд зөө
     teams = TEAM_SETUP.get("teams", [])
@@ -1608,12 +1611,10 @@ async def resync(interaction: discord.Interaction):
 
 @bot.tree.command(name="backup_now", description="Датаг GitHub руу гараар хадгална (зөвхөн админд).")
 async def backup_now(interaction: discord.Interaction):
-    # ⚠️ Админ эрх шалгана
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("⛔️ Зөвхөн админ л ашиглана.", ephemeral=True)
         return
 
-    # ✅ Interaction acknowledge
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -1621,14 +1622,9 @@ async def backup_now(interaction: discord.Interaction):
         return
 
     try:
-        # 📦 GitHub commit-уудыг дарааллаар хийнэ
-        await commit_to_github(SCORE_FILE, "manual backup: scores.json")
-        await commit_to_github(SCORE_LOG_FILE, "manual backup: score_log.jsonl")
-        await commit_to_github(LOG_FILE, "manual backup: match_log.json")
-        await commit_to_github(DONATOR_FILE, "manual backup: donator.json")
-        await commit_to_github(SHIELD_FILE, "manual backup: donate_shields.json")
-
-        await interaction.followup.send("✅ Датаг GitHub руу амжилттай хадгаллаа.")
+        file_list = [SCORE_FILE, SCORE_LOG_FILE, LOG_FILE, DONATOR_FILE, SHIELD_FILE]
+        commit_to_github_multi(file_list, "manual backup: all log files")
+        await interaction.followup.send("✅ Бүх log файлуудыг GitHub руу хадгаллаа.")
     except Exception as e:
         await interaction.followup.send(f"❌ Backup хийхэд алдаа гарлаа: {e}", ephemeral=True)
 
