@@ -274,9 +274,16 @@ def calc_diff(teams):
     return max(totals) - min(totals)
 
 
-def call_gpt_balance_api(team_count, players_per_team, player_scores):
+def call_gpt_balance_api(team_count, players_per_team, player_ids, scores):
     if not OPENAI_API_KEY:
         raise ValueError("❌ OPENAI_API_KEY тодорхойлогдоогүй байна.")
+
+    # Tier + score нийлбэрийг тооцоолж оноо гаргана
+    player_scores = []
+    for uid in player_ids:
+        data = scores.get(str(uid), {})
+        power = tier_score(data)
+        player_scores.append({"id": uid, "power": power})
 
     prompt = f"""
 {team_count} багт {players_per_team * team_count} тоглогчийг онооны дагуу тэнцвэртэй хувиарла.
@@ -304,10 +311,9 @@ def call_gpt_balance_api(team_count, players_per_team, player_scores):
             logprobs=False,
             user="rzr_balance_bot",
             logit_bias={},
-            response_format={ "type": "json_object" },   # <<----- ЭНД INGESEN!!
+            response_format={ "type": "json_object" },
             store=True
         )
-
     except Exception as e:
         print("❌ GPT API chat.completions.create алдаа:", e)
         raise
