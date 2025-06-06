@@ -639,7 +639,10 @@ async def scoreboard(interaction: discord.Interaction):
 @bot.tree.command(name="make_team", description="Тоглох багийн тохиргоог эхлүүлнэ")
 @app_commands.describe(team_count="Хэдэн багтай байх вэ", players_per_team="Нэг багт хэдэн хүн байх вэ")
 async def make_team(interaction: discord.Interaction, team_count: int, players_per_team: int):
-    global TEAM_SETUP
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        return
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -647,7 +650,7 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
         return
 
     if GAME_SESSION["active"]:
-        await interaction.response.send_message("⚠️ Session аль хэдийн идэвхтэй байна. Дууссан эсэхийг шалгана уу.", ephemeral=True)
+        await interaction.followup.send("⚠️ Session аль хэдийн идэвхтэй байна. Дууссан эсэхийг шалгана уу.", ephemeral=True)
         return
 
     # 🧠 Session шинэчилнэ
@@ -656,7 +659,6 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
     GAME_SESSION["start_time"] = now
     GAME_SESSION["last_win_time"] = now
 
-    TEAM_SETUP["initiator_id"] = interaction.user.id
     TEAM_SETUP["team_count"] = team_count
     TEAM_SETUP["players_per_team"] = players_per_team
     TEAM_SETUP["player_ids"] = []
@@ -668,10 +670,6 @@ async def make_team(interaction: discord.Interaction, team_count: int, players_p
         f"🎮 Тоглогчид `/addme` гэж бүртгүүлнэ үү.\n"
         f"⏳ 24 цагийн дотор `/make_team_go` эсвэл `/gpt_go` командуудыг ажиллуулна."
     )
-
-    print("👉 initiator_id:", TEAM_SETUP["initiator_id"])
-    print("👉 current_user:", interaction.user.id)
-
 
 @bot.tree.command(name="addme", description="Тоглоомд оролцохоор бүртгүүлнэ")
 async def addme(interaction: discord.Interaction):
@@ -707,14 +705,17 @@ async def addme(interaction: discord.Interaction):
 
 @bot.tree.command(name="make_team_go", description="Хамгийн тэнцвэртэй хувилбараар баг хуваарилна")
 async def make_team_go(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        return
+
+    if not GAME_SESSION["active"]:
+        await interaction.response.send_message("⚠️ Session идэвхгүй байна. /make_team коммандоор эхлүүлнэ үү.", ephemeral=True)
+        return
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
-        return
-
-    initiator_id = TEAM_SETUP.get("initiator_id")
-    if initiator_id and interaction.user.id != initiator_id:
-        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.")
         return
 
     guild = interaction.guild
@@ -759,10 +760,7 @@ async def make_team_go(interaction: discord.Interaction):
     GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)  # 🕓 Session шинэчилнэ
 
     team_emojis = ["🏆", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
-
-    msg_lines = [
-        f"🤖 **{len(player_ids)} тоглогчийг {team_count} багт хувиарлалаа (нэг багт {players_per_team} хүн):**"
-    ]
+    msg_lines = [f"🤖 **{len(player_ids)} тоглогчийг {team_count} багт хувиарлалаа (нэг багт {players_per_team} хүн):**"]
 
     for i, team in enumerate(final_teams):
         emoji = team_emojis[i % len(team_emojis)]
@@ -783,19 +781,17 @@ async def make_team_go(interaction: discord.Interaction):
         msg_lines.append(f"\n⚠️ **Дараах тоглогчид энэ удаад багт багтаж чадсангүй:**\n• {mentions}")
 
     await interaction.followup.send("\n".join(msg_lines))
-    print("👉 initiator_id:", TEAM_SETUP.get("initiator_id"))
-    print("👉 current_user:", interaction.user.id)
+
 
 @bot.tree.command(name="gpt_go", description="GPT-ээр онооны баланс хийж баг хуваарилна")
 async def gpt_go(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        return
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
-        return
-
-    initiator_id = TEAM_SETUP.get("initiator_id")
-    if initiator_id and interaction.user.id != initiator_id:
-        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.")
         return
 
     guild = interaction.guild
@@ -812,12 +808,10 @@ async def gpt_go(interaction: discord.Interaction):
         ts = tier_score(data)
         player_scores.append({"id": uid, "score": ts})
 
-    # Хэтэрсэн тохиолдолд хамгийн өндөр оноотойг сонгоно
     if len(player_scores) > total_slots:
         player_scores = sorted(player_scores, key=lambda x: x["score"], reverse=True)[:total_slots]
         player_ids = [p["id"] for p in player_scores]
 
-    # 🧠 GPT API-р хуваарилалт хийх
     try:
         teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
     except Exception as e:
@@ -829,7 +823,7 @@ async def gpt_go(interaction: discord.Interaction):
         return
 
     TEAM_SETUP["teams"] = teams
-    GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)  # 🕓 Session шинэчилнэ
+    GAME_SESSION["last_win_time"] = datetime.now(timezone.utc)
 
     used_uids = set(uid for team in teams for uid in team)
     team_emojis = ["🥇", "🥈", "🥉", "🎯", "🔥", "🚀", "🎮", "🛡️", "⚔️", "🧠"]
@@ -854,15 +848,14 @@ async def gpt_go(interaction: discord.Interaction):
 @bot.tree.command(name="set_winner_team", description="Хожсон болон хожигдсон багийг зааж оноо өгнө")
 @app_commands.describe(winning_team="Хожсон багийн дугаар", losing_team="Хожигдсон багийн дугаар")
 async def set_winner_team(interaction: discord.Interaction, winning_team: int, losing_team: int):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        return
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
         print("❌ Interaction expired.")
-        return
-
-    initiator_id = TEAM_SETUP.get("initiator_id")
-    if initiator_id and interaction.user.id != initiator_id:
-        await interaction.followup.send("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулна.", ephemeral=True)
         return
 
     if not GAME_SESSION["active"]:
@@ -884,9 +877,8 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 
     winning_ids = get_team_user_ids(winning_team)
     losing_ids = get_team_user_ids(losing_team)
-    winners, losers = [], []
+    winners, losers = []
 
-    # ✅ Хожсон багт оноо нэмэх
     for uid in winning_ids:
         uid_str = str(uid)
         member = guild.get_member(uid)
@@ -909,7 +901,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
         if member:
             winners.append(member.mention)
 
-    # ✅ Хожигдсон багт оноо хасах
     for uid in losing_ids:
         uid_str = str(uid)
         member = guild.get_member(uid)
@@ -936,7 +927,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
     save_shields(shields)
     await update_nicknames_for_users(guild, changed_ids)
 
-    # ✅ Match log
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mode": "set_winner_team",
@@ -964,7 +954,6 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
             "losers": losing_ids
         }, f, indent=2)
 
-    # ✅ Хариу харуулна
     await interaction.followup.send(
         f"🏆 **Team {winning_team} оноо авлаа:** ✅ +1\n{', '.join(winners)}\n\n"
         f"💔 **Team {losing_team} оноо хасагдлаа:** ❌ -1\n{', '.join(losers)}"
@@ -976,14 +965,14 @@ async def set_winner_team(interaction: discord.Interaction, winning_team: int, l
 @bot.tree.command(name="change_player", description="Багт тоглогч солих")
 @app_commands.describe(from_member="Солигдох тоглогч", to_member="Шинэ тоглогч")
 async def change_player(interaction: discord.Interaction, from_member: discord.Member, to_member: discord.Member):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
+        return
+
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
         print("❌ Interaction expired.")
-        return
-
-    if interaction.user.id != TEAM_SETUP.get("initiator_id"):
-        await interaction.followup.send("❌ Зөвхөн багийн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.", ephemeral=True)
         return
 
     teams = TEAM_SETUP.get("teams", [])
@@ -998,18 +987,17 @@ async def change_player(interaction: discord.Interaction, from_member: discord.M
             idx = team.index(from_member.id)
             teams[i][idx] = to_member.id
             found = True
-            old_team_idx = i + 1  # 1-с эхэлсэн дугаар
+            old_team_idx = i + 1
             break
 
     if not found:
         await interaction.followup.send(f"⚠️ {from_member.mention} багт бүртгэгдээгүй байна.")
         return
 
-    # player_ids list-ийг шинэчилнэ
     TEAM_SETUP["player_ids"].remove(from_member.id)
     TEAM_SETUP["player_ids"].append(to_member.id)
 
-    # log бичих
+    # 🧾 log бичих
     team_log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mode": "change_player",
@@ -1134,9 +1122,8 @@ async def user_score(interaction: discord.Interaction, member: discord.Member):
     losing_team="Хожигдсон багийн дугаар (1, 2, 3...)"
 )
 async def set_winner_team_fountain(interaction: discord.Interaction, winning_team: int, losing_team: int):
-    initiator_id = TEAM_SETUP.get("initiator_id")
-    if initiator_id and interaction.user.id != initiator_id:
-        await interaction.response.send_message("❌ Зөвхөн тохиргоог эхлүүлсэн хүн ажиллуулж чадна.", ephemeral=True)
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("⛔️ Зөвхөн админ хэрэглэнэ.", ephemeral=True)
         return
 
     if not GAME_SESSION["active"]:
@@ -1145,6 +1132,10 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
     if winning_team < 1 or winning_team > TEAM_SETUP["team_count"] or losing_team < 1 or losing_team > TEAM_SETUP["team_count"]:
         await interaction.response.send_message("❌ Багийн дугаар буруу байна.", ephemeral=True)
+        return
+
+    if winning_team == losing_team:
+        await interaction.response.send_message("⚠️ Хожсон ба хожигдсон баг адил байна.", ephemeral=True)
         return
 
     try:
@@ -1244,12 +1235,10 @@ async def set_winner_team_fountain(interaction: discord.Interaction, winning_tea
 
 @bot.tree.command(name="active_teams", description="Идэвхтэй багуудын жагсаалт")
 async def active_teams(interaction: discord.Interaction):
-    # ✅ эхлээд session шалгана
     if not GAME_SESSION["active"] or "teams" not in TEAM_SETUP:
         await interaction.response.send_message("⚠️ Session идэвхгүй байна.", ephemeral=True)
         return
 
-    # ✅ defer зөв газарт
     try:
         await interaction.response.defer(thinking=True)
     except discord.errors.InteractionResponded:
@@ -1257,14 +1246,20 @@ async def active_teams(interaction: discord.Interaction):
         return
 
     guild = interaction.guild
+    scores = load_scores()
     msg = "📋 **Идэвхтэй багуудын жагсаалт:**\n"
 
     for i, team_members in enumerate(TEAM_SETUP["teams"], start=1):
         mentions = []
+        total_score = 0
         for uid in team_members:
             member = guild.get_member(uid)
-            mentions.append(member.mention if member else f"<@{uid}>")
-        msg += f"\n🥇 **Team {i}:**\n• " + ", ".join(mentions) + "\n"
+            mention = member.mention if member else f"<@{uid}>"
+            ts = tier_score(scores.get(str(uid), {}))
+            total_score += ts
+            mentions.append(f"{mention} ({ts})")
+
+        msg += f"\n🥇 **Team {i}** — Нийт оноо: `{total_score}`\n• " + "\n• ".join(mentions) + "\n"
 
     await interaction.followup.send(msg)
 
