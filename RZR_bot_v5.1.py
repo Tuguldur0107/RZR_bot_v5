@@ -355,8 +355,19 @@ def test_call_gpt_balance_api():
         {"id": 1006, "score": 5}
     ]
 
+    # GPT-д дамжуулахад хэрэгтэй `scores` dict үүсгэнэ
+    dummy_scores = {
+        str(p["id"]): {"score": p["score"], "tier": "4-1"}  # tier_score() ашиглаж болно
+        for p in player_scores
+    }
+
     try:
-        teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
+        teams = call_gpt_balance_api(
+            team_count,
+            players_per_team,
+            [p["id"] for p in player_scores],
+            dummy_scores
+        )
         print("✅ Teams received from GPT:", teams)
     except Exception as e:
         print("❌ Тест дээр алдаа гарлаа:", e)
@@ -813,7 +824,7 @@ async def gpt_go(interaction: discord.Interaction):
         player_ids = [p["id"] for p in player_scores]
 
     try:
-        teams = call_gpt_balance_api(team_count, players_per_team, player_scores)
+        teams = call_gpt_balance_api(team_count, players_per_team, player_ids, scores)
     except Exception as e:
         print("❌ GPT API error:", e)
         await interaction.followup.send(
@@ -1563,12 +1574,7 @@ async def add_score(interaction: discord.Interaction, mentions: str, points: int
         updated.append(member)
 
         # ✅ Нэрийг төвлөрсөн функцээр шинэчилнэ
-        await update_nicknames_for_users(interaction.guild, user_ids)
-
-        #try:
-            #await member.edit(nick=new_nick)
-        #except Exception as e:
-            #print(f"⚠️ Nickname өөрчлөх үед алдаа гарлаа: {e}")
+        await update_nicknames_for_users(interaction.guild, [m.id for m in updated])
 
     # ✅ Хариу илгээнэ
     if updated:
