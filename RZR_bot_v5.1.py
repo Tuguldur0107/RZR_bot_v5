@@ -119,19 +119,21 @@ def save_scores(data):
     except Exception as e:
         print("❌ scores.json хадгалах үед алдаа:", e)
 
-def log_score_transaction(uid: str, delta: int, total: int, tier: str, reason: str = ""):
+def log_score_transaction(uid, delta, total, tier, reason):
+    print(f"[score_log] Logging: {uid}, Δ{delta}, T{total}, {tier}, {reason}")  # ← log шалгах
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "uid": uid,
+        "uid": str(uid),
         "delta": delta,
         "total": total,
         "tier": tier,
         "reason": reason
     }
-    print(f"[score_log] {entry}")
-
-    with open(SCORE_LOG_FILE, "a") as f:
-        f.write(json.dumps(entry) + "\n")
+    try:
+        with open(SCORE_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as e:
+        print(f"❌ score_log.jsonl write error: {e}")
 
 # Зөвхөн энэ дараалал дагуу tier харуулна (өндөрөөс нам)
 TIER_ORDER = ["2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
