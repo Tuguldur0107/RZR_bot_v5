@@ -434,3 +434,11 @@
 {"timestamp": "2025-06-07T07:50:52.152217+00:00", "uid": "1141017046822420621", "delta": -1, "total": -1, "tier": "3-2", "reason": "manual"}
 {"timestamp": "2025-06-07T07:50:53.574003+00:00", "uid": "955969999921631254", "delta": -1, "total": -1, "tier": "3-3", "reason": "manual"}
 {"timestamp": "2025-06-07T07:50:54.696100+00:00", "uid": "333279032781307905", "delta": -1, "total": 1, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-07T10:50:55.812375+00:00", "uid": "776727679578931201", "delta": -1, "total": 2, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-07T10:50:56.294362+00:00", "uid": "964136683803119657", "delta": -1, "total": -3, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T10:50:56.999944+00:00", "uid": "1093766472674856970", "delta": -1, "total": 0, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-07T10:50:58.149364+00:00", "uid": "297490388074102784", "delta": -1, "total": 0, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T10:51:52.852481+00:00", "uid": "1150241155817144350", "delta": 1, "total": -1, "tier": "3-2", "reason": "manual"}
+{"timestamp": "2025-06-07T10:51:53.251824+00:00", "uid": "1325383617555206206", "delta": 1, "total": 0, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-07T10:51:53.948493+00:00", "uid": "1198134239531651082", "delta": 1, "total": 4, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T10:51:54.908430+00:00", "uid": "1341467374875967561", "delta": 1, "total": 3, "tier": "4-2", "reason": "manual"}
