@@ -541,3 +541,14 @@
 {"timestamp": "2025-06-07T18:36:01.172207+00:00", "uid": "1282027571613270057", "delta": -1, "total": 1, "tier": "4-1", "reason": "manual"}
 {"timestamp": "2025-06-07T18:36:02.282096+00:00", "uid": "596706860334186506", "delta": -1, "total": 0, "tier": "4-1", "reason": "manual"}
 {"timestamp": "2025-06-07T18:36:03.401946+00:00", "uid": "836584165956780052", "delta": -1, "total": -2, "tier": "3-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:22:25.027017+00:00", "uid": "1282027571613270057", "delta": 1, "total": 2, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:22:25.506717+00:00", "uid": "1088424182498459668", "delta": 1, "total": 1, "tier": "3-3", "reason": "manual"}
+{"timestamp": "2025-06-07T19:22:26.584115+00:00", "uid": "776727679578931201", "delta": 1, "total": 0, "tier": "3-2", "reason": "manual"}
+{"timestamp": "2025-06-07T19:22:27.749171+00:00", "uid": "596706860334186506", "delta": 1, "total": 1, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:22:28.735374+00:00", "uid": "1093766472674856970", "delta": 1, "total": 0, "tier": "3-2", "reason": "manual"}
+{"timestamp": "2025-06-07T19:23:47.510436+00:00", "uid": "1041157393230331984", "delta": -1, "total": -1, "tier": "2-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:23:47.859822+00:00", "uid": "1320046528576098535", "delta": -1, "total": 0, "tier": "4-2", "reason": "manual"}
+{"timestamp": "2025-06-07T19:23:48.372339+00:00", "uid": "1288420999439585363", "delta": -1, "total": -2, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:23:49.091407+00:00", "uid": "1016258389019459595", "delta": -1, "total": 2, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:23:50.346712+00:00", "uid": "1177278973416329276", "delta": -1, "total": -1, "tier": "4-1", "reason": "manual"}
+{"timestamp": "2025-06-07T19:26:44.965131+00:00", "uid": "1041157393230331984", "delta": 4, "total": 3, "tier": "2-1", "reason": "manual"}
